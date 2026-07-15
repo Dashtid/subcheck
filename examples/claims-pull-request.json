@@ -1,0 +1,11 @@
+{
+  "iss": "https://token.actions.githubusercontent.com",
+  "aud": "sts.amazonaws.com",
+  "sub": "repo:acme/payments-api:pull_request",
+  "repository": "acme/payments-api",
+  "repository_owner": "acme",
+  "ref": "refs/pull/42/merge",
+  "runner_environment": "github-hosted",
+  "actor": "random-contributor",
+  "workflow": "ci"
+}

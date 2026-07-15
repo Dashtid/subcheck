@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "oidc-claim-inspector"
+version = "0.1.0"
+description = "Decode GitHub Actions OIDC token claims and validate them against an expected-claims policy - a CI gate against over-broad cloud trust."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "David Dashti" }]
+keywords = ["oidc", "github-actions", "aws-iam", "cicd-security", "supply-chain-security", "least-privilege"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Topic :: Security",
+  "Intended Audience :: Developers",
+]
+dependencies = ["PyYAML>=6.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "ruff>=0.4", "bandit>=1.7"]
+
+[project.urls]
+Homepage = "https://github.com/Dashtid/oidc-claim-inspector"
+Related = "https://github.com/Dashtid/subvectors"
+
+[project.scripts]
+oidc-claim-inspector = "oidc_claim_inspector.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/oidc_claim_inspector"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

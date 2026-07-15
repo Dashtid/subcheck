@@ -1,4 +1,4 @@
-"""Command-line interface for oidc-claim-inspector."""
+"""Command-line interface for subcheck."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def _load_claims(args: argparse.Namespace) -> dict:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="oidc-claim-inspector",
+        prog="subcheck",
         description="Decode GitHub Actions OIDC token claims and validate them "
         "against an expected-claims policy.",
     )

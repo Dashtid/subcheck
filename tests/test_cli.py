@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from oidc_claim_inspector.cli import main
+from subcheck.cli import main
 
 
 def test_inspect_only_prints_claims(examples_dir, capsys):

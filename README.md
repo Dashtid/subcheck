@@ -1,11 +1,14 @@
-# oidc-claim-inspector
+# subcheck
 
 Decode a GitHub Actions **OIDC token's claims** and check them against an expected-claims
 policy — so a workflow fails *before* an over-broad cloud trust policy lets the wrong branch,
 pull request, or fork assume your role.
 
+*Named for the claim that decides everything — `sub`. A focused sibling of
+[subvectors](https://github.com/Dashtid/subvectors), which maps those claims to the reachable IAM roles.*
+
 ```text
-$ oidc-claim-inspector --claims examples/claims-pull-request.json --policy examples/policy.json
+$ subcheck --claims examples/claims-pull-request.json --policy examples/policy.json
 OIDC claim inspection: FAIL  (3 pass, 1 fail, 1 missing)
 
   [+] iss                 high    claim 'iss' satisfies equals 'https://token.actions.githubusercontent.com'
@@ -36,7 +39,7 @@ against a policy — nothing to configure, no cloud account, no network.
 ## Install
 
 ```bash
-pip install oidc-claim-inspector        # once published
+pip install subcheck        # once published
 # or from a clone:
 pip install -e ".[dev]"
 ```
@@ -46,13 +49,13 @@ pip install -e ".[dev]"
 Decode a token (claims only):
 
 ```bash
-oidc-claim-inspector --token "$TOKEN"      # or: --token -   (read the JWT from stdin)
+subcheck --token "$TOKEN"      # or: --token -   (read the JWT from stdin)
 ```
 
 Validate against a policy and gate on the result:
 
 ```bash
-oidc-claim-inspector --token "$TOKEN" --policy .github/oidc-policy.yaml
+subcheck --token "$TOKEN" --policy .github/oidc-policy.yaml
 echo $?     # 0 = all matched, 1 = a claim didn't match, 2 = usage/parse error
 ```
 
@@ -104,12 +107,12 @@ permissions:
   contents: read
 steps:
   - uses: actions/checkout@v4
-  - run: pip install oidc-claim-inspector
+  - run: pip install subcheck
   - name: Verify the OIDC token is scoped as expected
     run: |
       TOKEN=$(curl -sH "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
         "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
-      echo "$TOKEN" | oidc-claim-inspector --token - --policy .github/oidc-policy.yaml
+      echo "$TOKEN" | subcheck --token - --policy .github/oidc-policy.yaml
 ```
 
 ## Development

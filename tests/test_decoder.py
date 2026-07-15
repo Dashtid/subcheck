@@ -1,6 +1,6 @@
 import pytest
 
-from oidc_claim_inspector import decode_claims, parse_github_sub
+from subcheck import decode_claims, parse_github_sub
 
 
 def test_decode_roundtrip(make_jwt):

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-# Allow `import oidc_claim_inspector` without an install (src layout).
+# Allow `import subcheck` without an install (src layout).
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
 if str(SRC) not in sys.path:

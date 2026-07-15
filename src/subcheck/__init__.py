@@ -1,4 +1,4 @@
-"""oidc-claim-inspector: decode and validate GitHub Actions OIDC token claims."""
+"""subcheck: decode and validate GitHub Actions OIDC token claims."""
 
 from .decoder import decode_claims, parse_github_sub
 from .policy import ClaimRule, Policy, load_policy, load_policy_file

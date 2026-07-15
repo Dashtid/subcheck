@@ -1,5 +1,5 @@
-from oidc_claim_inspector import load_policy, validate
-from oidc_claim_inspector.validator import FAIL, MISSING, PASS
+from subcheck import load_policy, validate
+from subcheck.validator import FAIL, MISSING, PASS
 
 
 def _policy():

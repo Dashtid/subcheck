@@ -1,4 +1,4 @@
-"""Enable `python -m oidc_claim_inspector`."""
+"""Enable `python -m subcheck`."""
 
 from .cli import main
 

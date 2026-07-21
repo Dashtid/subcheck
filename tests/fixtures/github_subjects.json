@@ -1,0 +1,72 @@
+{
+  "_source": "GitHub Actions OIDC subject strings drawn from the subvectors conformance vector suite (github.com/Dashtid/subvectors, vectors/ under CC0-1.0). Vendored here as decoder fixtures so subcheck's parse_github_sub is differentially tested against the subvectors subject grammar. CC0 = no attribution required; the citation is courtesy. Refresh from upstream when subvectors adds subject forms.",
+  "subjects": [
+    {
+      "subject": "repo:octo-org/octo-repo:ref:refs/heads/main",
+      "format": "legacy",
+      "repository": "octo-org/octo-repo",
+      "repository_owner": "octo-org",
+      "context": "ref",
+      "ref": "refs/heads/main"
+    },
+    {
+      "subject": "repo:octo-org/octo-repo:pull_request",
+      "format": "legacy",
+      "repository": "octo-org/octo-repo",
+      "repository_owner": "octo-org",
+      "context": "pull_request"
+    },
+    {
+      "subject": "repo:octo-org/octo-repo:environment:Production",
+      "format": "legacy",
+      "repository": "octo-org/octo-repo",
+      "context": "environment",
+      "environment": "Production"
+    },
+    {
+      "subject": "repo:octo-org/octo-repo:ref:refs/tags/v1.0",
+      "format": "legacy",
+      "repository": "octo-org/octo-repo",
+      "context": "ref",
+      "ref": "refs/tags/v1.0"
+    },
+    {
+      "subject": "repo:octo-org/octo-repo:ref:refs/heads/feature/x",
+      "format": "legacy",
+      "repository": "octo-org/octo-repo",
+      "context": "ref",
+      "ref": "refs/heads/feature/x"
+    },
+    {
+      "subject": "repo:Octo-Org/octo-repo:ref:refs/heads/main",
+      "format": "legacy",
+      "repository": "Octo-Org/octo-repo",
+      "repository_owner": "Octo-Org",
+      "ref": "refs/heads/main"
+    },
+    {
+      "subject": "repo:octo-org@123456/octo-repo@456789:ref:refs/heads/main",
+      "format": "immutable",
+      "repository": "octo-org/octo-repo",
+      "repository_owner": "octo-org",
+      "repository_owner_id": "123456",
+      "repository_id": "456789",
+      "context": "ref",
+      "ref": "refs/heads/main"
+    },
+    {
+      "subject": "repo:octo-org@123456/octo-repo@7891011:ref:refs/heads/main",
+      "format": "immutable",
+      "repository": "octo-org/octo-repo",
+      "repository_owner_id": "123456",
+      "repository_id": "7891011",
+      "ref": "refs/heads/main"
+    },
+    {
+      "subject": "repo:octo-org/octo-repo:environment:prod:job_workflow_ref:octo-org/octo-automation/.github/workflows/oidc.yml@refs/heads/main",
+      "format": "legacy",
+      "repository": "octo-org/octo-repo",
+      "repository_owner": "octo-org"
+    }
+  ]
+}

@@ -48,12 +48,15 @@ new/renamed/transferred repos on **2026-07-15**; name-based policies silently st
 - `[ ]` (optional) `job_workflow_ref` pinning example + severity — the reusable-workflow supply-chain
   anchor AWS now exposes as a first-class condition key.
 
-## Phase 2 — become the first consumer of subvectors
+## Phase 2 — first consumer of subvectors (done this cycle)
 
-- `[ ]` Import subvectors' CC0 `subject`/`claims` vectors as **decoder test fixtures**; assert
-  subcheck's parser agrees with the corpus. One-way, test-time only; subcheck never becomes a runtime
-  dependency of subvectors. Triple duty: proves the decoder against a cited corpus, gives subvectors
-  its first external-adoption datapoint, and makes the "Related tools" family real in code.
+- `[x]` Vendored subvectors' CC0 GitHub `subject` strings as decoder fixtures
+  (`tests/fixtures/github_subjects.json`, cited); `tests/test_decoder_vectors.py` asserts
+  `parse_github_sub` agrees with the subvectors subject grammar on all 9 (legacy, both immutable ID
+  forms, case-sensitivity, nested-branch ref, tag ref, customized multi-segment sub). One-way,
+  test-time, self-contained (CI-safe) — subvectors is never a runtime dependency.
+- `[ ]` (upstream, separate subvectors session) record subcheck as the corpus's first consumer in
+  subvectors' BACKLOG "Consumer-adoption" item — the adoption datapoint its success metric tracks.
 
 ## Phase 3 — ship it properly
 

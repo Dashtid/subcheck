@@ -4,6 +4,18 @@ All notable changes are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); this project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- CI also runs on Python 3.13, type-checks with `mypy`, and reports coverage; the package now
+  ships a `py.typed` marker.
+
+### Fixed
+- README quickstart output now matches the tool's real output (7 rows, `5 pass, 1 fail, 1 missing`).
+- The sibling **subvectors** is described accurately across README/CONTRIBUTING (a conformance
+  test-vector suite, not a reachability PR gate).
+- Documented that `matches` is unanchored (`re.search`) and that `equals`/`in` are JSON-type-sensitive.
+
 ## [0.1.0] - 2026-07-15
 
 ### Added

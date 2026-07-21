@@ -12,7 +12,12 @@ license = { text = "MIT" }
 authors = [{ name = "David Dashti" }]
 keywords = ["oidc", "github-actions", "aws-iam", "cicd-security", "supply-chain-security", "least-privilege"]
 classifiers = [
+  "Development Status :: 4 - Beta",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "License :: OSI Approved :: MIT License",
   "Topic :: Security",
   "Intended Audience :: Developers",
@@ -20,7 +25,7 @@ classifiers = [
 dependencies = ["PyYAML>=6.0"]
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "ruff>=0.4", "bandit>=1.7"]
+dev = ["pytest>=7", "pytest-cov>=4", "mypy>=1.8", "types-PyYAML>=6", "ruff>=0.4", "bandit>=1.7"]
 
 [project.urls]
 Homepage = "https://github.com/Dashtid/subcheck"
@@ -44,3 +49,9 @@ select = ["E", "F", "I", "B", "UP", "S"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["src"]
+warn_unused_ignores = true
+warn_redundant_casts = true

@@ -1,8 +1,10 @@
 # Contributing
 
 Thanks for looking. This is a small, focused tool — decode GitHub Actions OIDC claims and
-validate them against a policy. It stays deliberately small; broader "map claims to reachable
-cloud roles" work lives in [subvectors](https://github.com/Dashtid/subvectors).
+validate them against a policy. It stays deliberately small: it asserts a token against an
+expectation *you* write, and deliberately does **not** simulate a cloud's trust-condition
+semantics — grading whether a trust condition is well-formed, matching, and safe lives in the
+sibling [subvectors](https://github.com/Dashtid/subvectors) vector suite.
 
 ## Setup
 

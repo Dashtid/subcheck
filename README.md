@@ -5,17 +5,20 @@ policy — so a workflow fails *before* an over-broad cloud trust policy lets th
 pull request, or fork assume your role.
 
 *Named for the claim that decides everything — `sub`. A focused sibling of
-[subvectors](https://github.com/Dashtid/subvectors), which maps those claims to the reachable IAM roles.*
+[subvectors](https://github.com/Dashtid/subvectors), the conformance test-vector suite (an "answer
+key") that grades whether those trust conditions are well-formed, matching, and safe.*
 
 ```text
 $ subcheck --claims examples/claims-pull-request.json --policy examples/policy.json
-OIDC claim inspection: FAIL  (3 pass, 1 fail, 1 missing)
+OIDC claim inspection: FAIL  (5 pass, 1 fail, 1 missing)
 
   [+] iss                 high    claim 'iss' satisfies equals 'https://token.actions.githubusercontent.com'
   [+] aud                 high    claim 'aud' satisfies equals 'sts.amazonaws.com'
-  [-] sub                 high    claim 'sub'='repo:acme/payments-api:pull_request' does not satisfy matches /^repo:.../
   [+] repository          high    claim 'repository' satisfies equals 'acme/payments-api'
+  [+] repository_owner    high    claim 'repository_owner' satisfies equals 'acme'
+  [-] sub                 high    claim 'sub'='repo:acme/payments-api:pull_request' does not satisfy matches /^repo:acme/payments-api:(ref:refs/heads/main|environment:production|ref:refs/tags/v[0-9].*)$/
   [!] environment         medium  claim 'environment' is required but absent
+  [+] runner_environment  medium  claim 'runner_environment' satisfies equals 'github-hosted'
 ```
 
 Exit code is non-zero on any finding, so the command drops straight into a CI step as a gate.
@@ -32,9 +35,10 @@ condition, or `...:sub` allowed for `repo:org/*` — so a pull request from a fo
 can mint a token that assumes a privileged role. This tool pins down exactly which claims you
 *expect* and flags the moment a token doesn't match.
 
-It's the small, focused sibling of **[subvectors](https://github.com/Dashtid/subvectors)** (a PR
-gate that maps OIDC claims to the *reachable* IAM roles). This one just inspects a single token
-against a policy — nothing to configure, no cloud account, no network.
+It's the small, focused sibling of **[subvectors](https://github.com/Dashtid/subvectors)** — the
+conformance test-vector suite that grades whether a cloud trust *condition* is well-formed,
+matches, and is safe. This one works the other end: it inspects a single *token* against a policy
+you write — nothing to configure, no cloud account, no network.
 
 ## Install
 
@@ -61,6 +65,9 @@ echo $?     # 0 = all matched, 1 = a claim didn't match, 2 = usage/parse error
 
 Inputs (choose one): `--token <jwt>` (`-` for stdin), `--token-file <path>`, or
 `--claims <decoded-claims.json>`. Output: `--format text` (default) or `json`.
+
+> Prefer `--token -` (stdin) or `--token-file` over passing the JWT as an argument — a token on the
+> command line leaks into the process list and shell history.
 
 > **Scope (and honesty):** this **decodes** the token payload for inspection — it does **not
 > verify the signature**. Verifying the signature and issuer against GitHub's JWKS is the cloud
@@ -96,6 +103,11 @@ claims:
   ref: [refs/heads/main, refs/heads/release]
 ```
 
+**Matching notes:** `matches` uses `re.search`, so it is *not* anchored — `matches: pull_request`
+matches that substring anywhere in the value. Anchor with `^…$` when you mean the whole claim (the
+examples do). `equals`/`in` compare against the value's real JSON type, so quote a number you expect
+as a string; `matches`/`glob` always operate on the stringified value.
+
 Claims that anchor the trust boundary (`iss`, `aud`, `sub`, `repository`, `repository_owner`)
 are reported at **high** severity; contextual claims default to **medium**.
 
@@ -125,6 +137,14 @@ bandit -r src      # security lint
 ```
 
 Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md); good first issues are labelled.
+
+## Related tools
+
+- **[subvectors](https://github.com/Dashtid/subvectors)** — the sibling project, working the other
+  end of the same trust boundary. subcheck checks the token a job *received* against your expected
+  claims; subvectors is the *cloud side* — a cited, versioned suite of conformance test vectors
+  answering "does subject S satisfy trust condition C, and is C safe?" across AWS IAM, Azure FIC,
+  and GCP WIF. subvectors grades the trust *rules*; subcheck asserts the *token*.
 
 ## License
 

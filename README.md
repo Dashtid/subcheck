@@ -108,8 +108,41 @@ matches that substring anywhere in the value. Anchor with `^…$` when you mean 
 examples do). `equals`/`in` compare against the value's real JSON type, so quote a number you expect
 as a string; `matches`/`glob` always operate on the stringified value.
 
-Claims that anchor the trust boundary (`iss`, `aud`, `sub`, `repository`, `repository_owner`)
-are reported at **high** severity; contextual claims default to **medium**.
+Claims that anchor the trust boundary (`iss`, `aud`, `sub`, `repository`, `repository_owner`,
+and the immutable `repository_id` / `repository_owner_id`) are reported at **high** severity;
+contextual claims default to **medium**.
+
+## Immutable subject claims (2026-07-15)
+
+GitHub is migrating the `sub` claim to an **immutable format** that embeds numeric owner/repo IDs —
+`repo:acme@123456/payments-api@456789:ref:refs/heads/main` — automatic for repositories created,
+renamed, or transferred after **2026-07-15**. A trust condition (or a `sub` pattern here) written
+for the legacy `repo:owner/repo:...` names silently stops matching, and deploys break with no code
+change.
+
+subcheck decodes both formats, reports which one a token uses, and flags the mismatch. Run a
+post-migration token against a name-based policy and it points straight at the cause (rows trimmed):
+
+```text
+$ subcheck --claims examples/claims-immutable.json --policy examples/policy.json
+OIDC claim inspection: FAIL  (6 pass, 1 fail, 0 missing)
+  ...
+  [-] sub                 high    claim 'sub'='repo:acme@123456/payments-api@456789:ref:refs/heads/main' does not satisfy matches /^repo:acme/payments-api:(ref:refs/heads/main|environment:production|ref:refs/tags/v[0-9].*)$/
+  ...
+
+Notes:
+  [i] sub uses the immutable format (repository_owner_id=123456, repository_id=456789); pin these numeric IDs in the cloud trust policy rather than mutable owner/repo names.
+  [i] the sub check failed while the token is immutable-format and the expected pattern looks name-based; update the expected sub, or pin repository_id / repository_owner_id instead.
+```
+
+The durable fix is to pin the numeric IDs — stable across renames and transfers — as in
+[`examples/policy-immutable.json`](examples/policy-immutable.json):
+
+```yaml
+claims:
+  repository_owner_id: "123456"
+  repository_id: "456789"
+```
 
 ## In a workflow
 

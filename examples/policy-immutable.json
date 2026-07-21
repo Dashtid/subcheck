@@ -1,0 +1,11 @@
+{
+  "issuer": "https://token.actions.githubusercontent.com",
+  "audience": "sts.amazonaws.com",
+  "claims": {
+    "repository_owner_id": { "equals": "123456" },
+    "repository_id": { "equals": "456789" },
+    "sub": { "matches": "^repo:acme@123456/payments-api@456789:(ref:refs/heads/main|environment:production)$" },
+    "environment": { "equals": "production" },
+    "runner_environment": { "equals": "github-hosted" }
+  }
+}

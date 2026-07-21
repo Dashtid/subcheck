@@ -29,3 +29,27 @@ def test_parse_github_sub_pull_request():
     parsed = parse_github_sub("repo:acme/api:pull_request")
     assert parsed["repository"] == "acme/api"
     assert parsed["context"] == "pull_request"
+
+
+def test_parse_github_sub_legacy_has_format():
+    parsed = parse_github_sub("repo:acme/api:ref:refs/heads/main")
+    assert parsed["format"] == "legacy"
+    assert parsed["repository"] == "acme/api"
+    assert parsed["repository_owner"] == "acme"
+    assert "repository_id" not in parsed
+
+
+def test_parse_github_sub_immutable():
+    parsed = parse_github_sub("repo:octo-org@123456/octo-repo@456789:ref:refs/heads/main")
+    assert parsed["format"] == "immutable"
+    assert parsed["repository"] == "octo-org/octo-repo"  # names, IDs stripped out
+    assert parsed["repository_owner"] == "octo-org"
+    assert parsed["repository_owner_id"] == "123456"
+    assert parsed["repository_id"] == "456789"
+    assert parsed["context"] == "ref"
+    assert parsed["ref"] == "refs/heads/main"
+
+
+def test_parse_github_sub_non_repo_subject():
+    parsed = parse_github_sub("not-a-repo-subject")
+    assert parsed == {"raw": "not-a-repo-subject"}

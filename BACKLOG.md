@@ -31,20 +31,22 @@ Status keys: `[ ]` todo · `[~]` in progress · `[x]` done this cycle.
   `types-PyYAML` to dev deps.
 - `[ ]` Commit + push the above; open follow-up issues for the good-first-issue items below.
 
-## Phase 1 — immutable subject-claims awareness (the differentiator + article #1 peg)
+## Phase 1 — immutable subject-claims awareness (done this cycle)
 
-Timely: the immutable `sub` format (`repo:owner@<owner_id>/repo@<repo_id>:...`) became automatic for
-new/renamed/transferred repos on **2026-07-15**. Name-based policies silently stop matching (or
-silently loosen) across the cutover.
+The immutable `sub` format (`repo:owner@<owner_id>/repo@<repo_id>:...`) became automatic for
+new/renamed/transferred repos on **2026-07-15**; name-based policies silently stop matching.
 
-- `[ ]` Make the decoder immutable-aware: parse both `repo:owner/repo:...` and the `@id` form; expose
-  `repository_id` / `repository_owner_id`. `parse_github_sub` currently splits naively and is unaware
-  of the `@id` form.
-- `[ ]` Wire `parse_github_sub` into the engine so policies can assert on structured `sub` components
-  (e.g. `sub.environment`) — today the tool is named for `sub` yet can only match the raw string.
-- `[ ]` Add a built-in check/warning: an expected-`sub` pattern that would not match the new format,
-  and steer users toward pinning the immutable numeric IDs (`repository_id`/`repository_owner_id`).
-- `[ ]` Ship an example policy pair (legacy + immutable) demonstrating the cutover.
+- `[x]` Immutable-aware decoder: `parse_github_sub` parses both formats, exposes
+  `repository_id`/`repository_owner_id` and a `format` field. Mirrors the subvectors subject grammar.
+- `[x]` Wire `parse_github_sub` into the engine — used for report **advisories** (format detection +
+  migration hints), *not* a `sub.<component>` DSL. `repository`/`repository_owner`/`ref`/`environment`
+  are already top-level claims, so a parsed-sub DSL would be redundant; revisit only on concrete need.
+- `[x]` Migration advisories (`report["notes"]`): flag a name-based `sub` pin that will break, and
+  hint when an immutable token fails a name-based pattern.
+- `[x]` `repository_id`/`repository_owner_id` ranked high severity (the durable trust anchors).
+- `[x]` Example pair: `examples/claims-immutable.json` + `examples/policy-immutable.json`.
+- `[ ]` (optional) `job_workflow_ref` pinning example + severity — the reusable-workflow supply-chain
+  anchor AWS now exposes as a first-class condition key.
 
 ## Phase 2 — become the first consumer of subvectors
 

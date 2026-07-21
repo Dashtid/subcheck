@@ -1,0 +1,14 @@
+{
+  "iss": "https://token.actions.githubusercontent.com",
+  "aud": "sts.amazonaws.com",
+  "sub": "repo:acme@123456/payments-api@456789:ref:refs/heads/main",
+  "repository": "acme/payments-api",
+  "repository_id": "456789",
+  "repository_owner": "acme",
+  "repository_owner_id": "123456",
+  "ref": "refs/heads/main",
+  "environment": "production",
+  "runner_environment": "github-hosted",
+  "actor": "deploy-bot",
+  "workflow": "deploy"
+}

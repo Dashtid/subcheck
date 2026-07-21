@@ -11,6 +11,7 @@ from __future__ import annotations
 import base64
 import binascii
 import json
+import re
 
 
 def _b64url_decode(segment: str) -> bytes:
@@ -38,20 +39,48 @@ def decode_claims(token: str) -> dict:
     return claims
 
 
+# repo:OWNER[@owner_id]/REPO[@repo_id]: ... -- the immutable format appends a numeric
+# owner/repo ID (mandatory for repos created, renamed, or transferred after 2026-07-15).
+# Owner/repo names exclude the '/', '@', ':' delimiters. Mirrors the subvectors subject
+# grammar so the two agree on what a concrete subject decodes to.
+_SUB_RE = re.compile(
+    r"^repo:"
+    r"(?P<owner>[^/@:]+)(?:@(?P<owner_id>\d+))?"
+    r"/"
+    r"(?P<repo>[^/@:]+)(?:@(?P<repo_id>\d+))?"
+    r"(?::(?P<context>.*))?$"
+)
+
+
 def parse_github_sub(sub: str) -> dict:
     """Best-effort parse of the GitHub Actions ``sub`` claim into its components.
 
+    Handles both the classic name-based format and the immutable format that appends
+    numeric owner/repo IDs (``repo:owner@123/repo@456:...``) — mandatory for repositories
+    created, renamed, or transferred after 2026-07-15. ``format`` is ``"immutable"`` when
+    an ID is present, else ``"legacy"``. ``repository`` is always the ``owner/repo`` names.
+
     Examples::
 
-        repo:acme/api:ref:refs/heads/main     -> repository, context=ref, ref
-        repo:acme/api:environment:production  -> repository, context=environment, environment
-        repo:acme/api:pull_request            -> repository, context=pull_request
+        repo:acme/api:ref:refs/heads/main       -> repository, context=ref, ref, format=legacy
+        repo:acme/api:environment:production    -> repository, context=environment, environment
+        repo:acme@1/api@2:ref:refs/heads/main   -> repository, repository_id, ..., format=immutable
+        repo:acme/api:pull_request              -> repository, context=pull_request
     """
     out: dict = {"raw": sub}
-    if not sub.startswith("repo:"):
+    m = _SUB_RE.match(sub)
+    if m is None:
         return out
-    repo, _, context = sub[len("repo:"):].partition(":")
-    out["repository"] = repo
+    owner, repo = m.group("owner"), m.group("repo")
+    owner_id, repo_id = m.group("owner_id"), m.group("repo_id")
+    out["repository_owner"] = owner
+    out["repository"] = f"{owner}/{repo}"
+    if owner_id is not None:
+        out["repository_owner_id"] = owner_id
+    if repo_id is not None:
+        out["repository_id"] = repo_id
+    out["format"] = "immutable" if (owner_id or repo_id) else "legacy"
+    context = m.group("context")
     if not context:
         return out
     kind, _, value = context.partition(":")

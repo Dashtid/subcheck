@@ -13,6 +13,8 @@ CLAIM_SEVERITY = {
     "sub": "high",
     "repository": "high",
     "repository_owner": "high",
+    "repository_id": "high",         # immutable trust anchors (survive rename/transfer)
+    "repository_owner_id": "high",
     "ref": "medium",
     "environment": "medium",
     "runner_environment": "medium",

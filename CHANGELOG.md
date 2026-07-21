@@ -6,6 +6,14 @@ All notable changes are documented here. Format based on
 
 ## [Unreleased]
 
+### Added
+- Immutable subject-claims support: `parse_github_sub` decodes both the legacy and the immutable
+  `repo:owner@id/repo@id:...` `sub` formats, exposing owner/repo IDs and a `format` field.
+- Report `notes`: advisory hints about the 2026-07-15 immutable-format migration (a name-based
+  `sub` pin that will break; a hint when an immutable token fails a name-based pattern).
+- `repository_id` / `repository_owner_id` ranked as high-severity (immutable) trust anchors.
+- `examples/claims-immutable.json` + `examples/policy-immutable.json` (an id-pinned durable policy).
+
 ### Changed
 - CI also runs on Python 3.13, type-checks with `mypy`, and reports coverage; the package now
   ships a `py.typed` marker.

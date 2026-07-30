@@ -73,6 +73,31 @@ new/renamed/transferred repos on **2026-07-15**; name-based policies silently st
 - `[ ]` Set the GitHub pin (portfolio slot #3; surfaces on dashti.se Featured Projects).
 - `[ ]` Coordinated burst *with subvectors*: article -> Show HN -> one subreddit -> LinkedIn.
 
+## Phase 2.5 — technical-soundness pass (done this cycle)
+
+Driven by a research fan-out (article-saturation + primary-source verification + adversarial
+refutation) before any article gets published. Findings that were *facts*, fixed here:
+
+- `[x]` **The fork claim was wrong.** A fork's `pull_request` cannot mint a token for the upstream
+  repo — `id-token: write` is downgraded and `ACTIONS_ID_TOKEN_REQUEST_TOKEN` is never injected.
+  README now lists the real paths. This error is endemic to the published literature; do not
+  reintroduce it, and it is worth an article of its own (see below).
+- `[x]` Half-immutable subjects (`@id` on one segment) reported as `malformed`, not `immutable`.
+- `[x]` Migration hints suppressed for non-github.com issuers (GHES keeps mutable names).
+- `[x]` Legacy hint no longer implies format follows from repo age (org/repo opt-in exists).
+- `[x]` `repository_id`/`repository_owner_id` provenance corrected (since Jan 2023, pin them now).
+- `[x]` `glob` vs IAM `StringLike` divergence documented (POSIX character classes).
+- `[x]` `job_workflow_ref` promoted to high severity.
+- `[x]` Documented *why* subcheck exists: `runner_environment`, `event_name`, `head_ref`,
+  `base_ref`, `workflow_ref` are **not expressible in an AWS trust policy at all**.
+
+Open follow-ups from the same pass:
+
+- `[ ]` **subvectors carries the same half-immutable tolerance** — `src/subvectors/github.py:56`
+  `RepoSegment.immutable` uses `owner_id is not None or repo_id is not None`. Fix in a subvectors
+  session so the two grammars genuinely agree (subcheck's decoder docstring claims they do).
+- `[ ]` Re-vendor the subject fixtures if subvectors adds a malformed/asymmetric subject vector.
+
 ## Correctness / quality parking lot
 
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim

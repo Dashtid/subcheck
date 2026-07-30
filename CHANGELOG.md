@@ -19,6 +19,24 @@ All notable changes are documented here. Format based on
   ships a `py.typed` marker.
 
 ### Fixed
+- **Corrected a factually wrong threat description.** A fork's pull request cannot mint an OIDC
+  token for the upstream repo (GitHub downgrades `id-token: write` and never injects
+  `ACTIONS_ID_TOKEN_REQUEST_TOKEN` for fork `pull_request` runs). The README now names the real
+  paths: push/branch-create access, `pull_request_target` / `workflow_run` with untrusted checkout,
+  and compromised third-party actions in a trusted job.
+- `parse_github_sub` no longer reports a subject carrying an ID on only one segment as
+  `immutable`; that shape is `malformed` (GitHub emits `@id` on both segments or neither) and is
+  surfaced as an advisory note.
+- Migration advisories are suppressed for non-github.com issuers — immutable subject claims are a
+  github.com-only feature, so GitHub Enterprise Server must not be told to migrate.
+- The legacy-format advisory no longer implies the format follows from a repo's age; any repo can
+  opt in early via the org-level or repo-level immutable-subject setting.
+- Corrected `repository_id` / `repository_owner_id` provenance: they have existed since January
+  2023 and work on legacy-format tokens, so they can be pinned today rather than after migrating.
+- Documented that `glob` honours POSIX character classes while IAM `StringLike` treats `[`/`]` as
+  literals, and that `repository_owner` is not an AWS condition key (only `repository_owner_id`).
+- `job_workflow_ref` promoted to high severity — the only claim constraining which workflow code
+  minted the token, and an AWS-accepted alternative identity-provider control to `sub`.
 - README quickstart output now matches the tool's real output (7 rows, `5 pass, 1 fail, 1 missing`).
 - The sibling **subvectors** is described accurately across README/CONTRIBUTING (a conformance
   test-vector suite, not a reachability PR gate).

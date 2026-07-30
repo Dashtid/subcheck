@@ -15,6 +15,9 @@ CLAIM_SEVERITY = {
     "repository_owner": "high",
     "repository_id": "high",         # immutable trust anchors (survive rename/transfer)
     "repository_owner_id": "high",
+    # the only claim constraining WHICH workflow code minted the token; AWS accepts it as an
+    # alternative identity-provider control to sub.
+    "job_workflow_ref": "high",
     "ref": "medium",
     "environment": "medium",
     "runner_environment": "medium",

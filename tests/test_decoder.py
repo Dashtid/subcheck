@@ -53,3 +53,16 @@ def test_parse_github_sub_immutable():
 def test_parse_github_sub_non_repo_subject():
     parsed = parse_github_sub("not-a-repo-subject")
     assert parsed == {"raw": "not-a-repo-subject"}
+
+
+def test_parse_github_sub_half_immutable_is_malformed():
+    # GitHub emits @id on both segments or neither; one-sided means hand-edited/half-migrated.
+    only_repo = parse_github_sub("repo:acme/api@456:ref:refs/heads/main")
+    assert only_repo["format"] == "malformed"
+    assert only_repo["repository"] == "acme/api"
+    assert only_repo["repository_id"] == "456"
+    assert "repository_owner_id" not in only_repo
+
+    only_owner = parse_github_sub("repo:acme@123/api:ref:refs/heads/main")
+    assert only_owner["format"] == "malformed"
+    assert only_owner["repository_owner_id"] == "123"

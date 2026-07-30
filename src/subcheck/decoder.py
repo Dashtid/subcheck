@@ -56,15 +56,18 @@ def parse_github_sub(sub: str) -> dict:
     """Best-effort parse of the GitHub Actions ``sub`` claim into its components.
 
     Handles both the classic name-based format and the immutable format that appends
-    numeric owner/repo IDs (``repo:owner@123/repo@456:...``) — mandatory for repositories
-    created, renamed, or transferred after 2026-07-15. ``format`` is ``"immutable"`` when
-    an ID is present, else ``"legacy"``. ``repository`` is always the ``owner/repo`` names.
+    numeric owner/repo IDs (``repo:owner@123/repo@456:...``). ``format`` is ``"immutable"``
+    only when BOTH IDs are present (the documented grammar always carries ``@ID`` on both
+    segments), ``"legacy"`` when neither is, and ``"malformed"`` when exactly one is —
+    a shape GitHub never mints, so it signals a hand-edited or half-migrated value.
+    ``repository`` is always the ``owner/repo`` names.
 
     Examples::
 
         repo:acme/api:ref:refs/heads/main       -> repository, context=ref, ref, format=legacy
         repo:acme/api:environment:production    -> repository, context=environment, environment
         repo:acme@1/api@2:ref:refs/heads/main   -> repository, repository_id, ..., format=immutable
+        repo:acme/api@2:ref:refs/heads/main     -> format=malformed (only one ID present)
         repo:acme/api:pull_request              -> repository, context=pull_request
     """
     out: dict = {"raw": sub}
@@ -79,7 +82,12 @@ def parse_github_sub(sub: str) -> dict:
         out["repository_owner_id"] = owner_id
     if repo_id is not None:
         out["repository_id"] = repo_id
-    out["format"] = "immutable" if (owner_id or repo_id) else "legacy"
+    if owner_id and repo_id:
+        out["format"] = "immutable"
+    elif owner_id or repo_id:
+        out["format"] = "malformed"  # GitHub always emits @ID on both segments, or neither
+    else:
+        out["format"] = "legacy"
     context = m.group("context")
     if not context:
         return out

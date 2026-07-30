@@ -25,10 +25,21 @@ def build_report(claims: dict, results: list[Result]) -> dict:
     }
 
 
+GITHUB_ISSUER = "https://token.actions.githubusercontent.com"
+
+
 def _advisories(claims: dict, results: list[Result]) -> list[str]:
-    """Non-gating hints, chiefly about the 2026 immutable subject-claims migration."""
+    """Non-gating hints, chiefly about the 2026 immutable subject-claims migration.
+
+    Immutable subject claims are a github.com-only feature, so the migration hints are
+    suppressed for any other issuer (notably GitHub Enterprise Server, which keeps the
+    mutable name-based format and uses an https://HOSTNAME/_services/token issuer).
+    """
     sub = claims.get("sub")
     if not isinstance(sub, str):
+        return []
+    iss = claims.get("iss")
+    if isinstance(iss, str) and iss != GITHUB_ISSUER:
         return []
     parsed = parse_github_sub(sub)
     fmt = parsed.get("format")
@@ -49,12 +60,19 @@ def _advisories(claims: dict, results: list[Result]) -> list[str]:
                 "pattern looks name-based; update the expected sub, or pin repository_id / "
                 "repository_owner_id instead."
             )
+    elif fmt == "malformed":
+        notes.append(
+            "sub carries an owner/repo ID on only one segment; GitHub always emits '@id' on "
+            "both or neither, so this value looks hand-edited or half-migrated."
+        )
     elif fmt == "legacy" and name_based_sub_pin:
         notes.append(
-            "sub is pinned by name; when this repo adopts the immutable format (automatic for "
-            "repos created, renamed, or transferred after 2026-07-15) the sub becomes "
+            "sub is pinned by name; when this repo adopts the immutable format the sub becomes "
             "'owner@id/repo@id:...' and this pattern stops matching - pin repository_id / "
-            "repository_owner_id to stay durable."
+            "repository_owner_id to stay durable. Adoption is automatic for repos created, "
+            "renamed, or transferred after 2026-07-15, but any repo can be switched on sooner "
+            "via the org-level or repo-level immutable-subject setting, so do not infer the "
+            "format from the repo's age."
         )
     return notes
 

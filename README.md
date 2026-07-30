@@ -2,7 +2,7 @@
 
 Decode a GitHub Actions **OIDC token's claims** and check them against an expected-claims
 policy — so a workflow fails *before* an over-broad cloud trust policy lets the wrong branch,
-pull request, or fork assume your role.
+workflow, or trigger assume your role.
 
 *Named for the claim that decides everything — `sub`. A focused sibling of
 [subvectors](https://github.com/Dashtid/subvectors), the conformance test-vector suite (an "answer
@@ -31,9 +31,16 @@ may assume the role by matching claims — above all `sub`
 (`repo:org/repo:ref:refs/heads/main`, `...:environment:production`, `...:pull_request`, …).
 
 The classic mistake is a trust condition that's too loose — a wildcard `sub`, a missing
-condition, or `...:sub` allowed for `repo:org/*` — so a pull request from a fork, or any branch,
-can mint a token that assumes a privileged role. This tool pins down exactly which claims you
-*expect* and flags the moment a token doesn't match.
+condition, or `...:sub` allowed for `repo:org/*` — so a token minted by something you never
+intended can assume a privileged role. This tool pins down exactly which claims you *expect* and
+flags the moment a token doesn't match.
+
+> **Who can actually mint such a token.** Not a fork's pull request: for `pull_request` runs from
+> a fork GitHub downgrades `id-token: write` and never injects
+> `ACTIONS_ID_TOKEN_REQUEST_TOKEN`, so a fork cannot obtain a token for the upstream repo. The
+> real paths are anyone with push/branch-create access (a wildcard `sub` then covers their
+> branch), `pull_request_target` or `workflow_run` jobs that check out untrusted code, and a
+> compromised third-party action running inside an already-trusted job.
 
 It's the small, focused sibling of **[subvectors](https://github.com/Dashtid/subvectors)** — the
 conformance test-vector suite that grades whether a cloud trust *condition* is well-formed,
@@ -89,7 +96,7 @@ claims:
   sub:
     matches: '^repo:acme/payments-api:(ref:refs/heads/main|environment:production)$'
   runner_environment:
-    equals: github-hosted        # reject self-hosted runners
+    equals: github-hosted        # reject self-hosted runners (see note below)
   environment:
     equals: production
     required: true
@@ -108,17 +115,36 @@ matches that substring anywhere in the value. Anchor with `^…$` when you mean 
 examples do). `equals`/`in` compare against the value's real JSON type, so quote a number you expect
 as a string; `matches`/`glob` always operate on the stringified value.
 
+`glob` is `fnmatch`-based: case-sensitive, `*` spans any characters (including `/` and `:`), `?`
+matches one. That lines up with AWS IAM `StringLike` on the properties that matter, with **one
+divergence** — `fnmatch` also honours POSIX character classes, so `glob: 'repo:acme/[ap]*'` matches
+here while IAM treats `[` and `]` as literals and matches nothing. Avoid character classes if the
+pattern is meant to mirror a trust policy. This is an expectation language, not a cloud-semantics
+simulator (see [subvectors](https://github.com/Dashtid/subvectors) for that).
+
 Claims that anchor the trust boundary (`iss`, `aud`, `sub`, `repository`, `repository_owner`,
-and the immutable `repository_id` / `repository_owner_id`) are reported at **high** severity;
+`repository_id`, `repository_owner_id`, and `job_workflow_ref`) are reported at **high** severity;
 contextual claims default to **medium**.
+
+**Why check claims the cloud already checks?** Because for several of them it can't.
+`runner_environment` is the clearest case: "reject self-hosted runners" is **not expressible in an
+AWS IAM trust policy at all** — nor are `event_name`, `head_ref`, `base_ref`, or `workflow_ref`. AWS
+exposes only a fixed set of GitHub claims as condition keys, and note that `repository_owner` is not
+among them (only `repository_owner_id` is), so a name-based owner pin here has no trust-policy
+equivalent. Asserting those claims in the job is the only place they can be enforced.
 
 ## Immutable subject claims (2026-07-15)
 
 GitHub is migrating the `sub` claim to an **immutable format** that embeds numeric owner/repo IDs —
-`repo:acme@123456/payments-api@456789:ref:refs/heads/main` — automatic for repositories created,
-renamed, or transferred after **2026-07-15**. A trust condition (or a `sub` pattern here) written
-for the legacy `repo:owner/repo:...` names silently stops matching, and deploys break with no code
-change.
+`repo:acme@123456/payments-api@456789:ref:refs/heads/main`. Adoption is automatic for repositories
+created, renamed, or transferred after **2026-07-15**, but any repository can be switched on sooner
+through the org-level or repo-level immutable-subject setting — so you cannot infer the format from
+a repo's age. A trust condition (or a `sub` pattern here) written for the legacy
+`repo:owner/repo:...` names silently stops matching, and deploys break with no code change.
+
+Immutable subject claims are **github.com only**; GitHub Enterprise Server keeps the mutable
+name-based format under its own `https://HOSTNAME/_services/token` issuer, and subcheck suppresses
+these migration hints for any non-github.com issuer.
 
 subcheck decodes both formats, reports which one a token uses, and flags the mismatch. Run a
 post-migration token against a name-based policy and it points straight at the cause (rows trimmed):
@@ -143,6 +169,10 @@ claims:
   repository_owner_id: "123456"
   repository_id: "456789"
 ```
+
+`repository_id` and `repository_owner_id` are **not new** — they have been separate claims in every
+token since January 2023 and are present on legacy-format tokens too. You do not have to wait for
+the migration to pin them; doing it now is what makes a policy survive the switch.
 
 ## In a workflow
 

@@ -11,9 +11,10 @@ expectation language and a fail-fast CI gate. It is **not** a cloud-trust-condit
 [subvectors](https://github.com/Dashtid/subvectors); verifying the JWT signature is the cloud
 provider's job at assume-time. Keep that line sharp (see Non-goals).
 
-**Sequencing.** subvectors is the flagship and the priority; subcheck is the finished, ship-fast
-companion. Keep subcheck launch-ready and *parked* — the public launch burst rides the subvectors
-v0.1 + writing article #1 release, not a solo push.
+**Sequencing.** subvectors is the flagship; subcheck is the finished companion. The original plan
+was to keep subcheck parked until a subvectors v0.1 + article #1 launch burst — but as of
+2026-08-16 that gate has partly fired on its own (subcheck is pinned at public slot #2) while both
+gate conditions remain outside your control. See the DECISION in Phase 4 before doing more here.
 
 Status keys: `[ ]` todo · `[~]` in progress · `[x]` done this cycle.
 
@@ -29,7 +30,8 @@ Status keys: `[ ]` todo · `[~]` in progress · `[x]` done this cycle.
 - `[x]` Add a "Related tools" cross-link to subvectors (the ecosystem-link half of the family).
 - `[x]` CI: add Python 3.13, add `mypy` (green), add coverage report; ship `py.typed` + add
   `types-PyYAML` to dev deps.
-- `[ ]` Commit + push the above; open follow-up issues for the good-first-issue items below.
+- `[x]` Commit + push the above (done; tree clean and in sync).
+- `[ ]` Open follow-up issues for the good-first-issue items below (`gh issue list` returns empty).
 
 ## Phase 1 — immutable subject-claims awareness (done this cycle)
 
@@ -67,11 +69,19 @@ new/renamed/transferred repos on **2026-07-15**; name-based policies silently st
 - `[ ]` ~20 specific GitHub Topics (`oidc`, `github-actions`, `aws-iam`, `cicd-security`,
   `supply-chain-security`, `least-privilege`, ...); seed 3-5 `good first issue` tickets.
 
-## Phase 4 — launch (GATED: do not fire until subvectors v0.1 + article #1 are ready)
+## Phase 4 — launch (the gate has partly fired on its own)
 
+- `[x]` **Set the GitHub pin** — done, and at slot **#2** (verified 2026-08-16), ahead of its gate.
 - `[ ]` Record the demo GIF/asciinema (a PR failing on `sub=...:pull_request`).
-- `[ ]` Set the GitHub pin (portfolio slot #3; surfaces on dashti.se Featured Projects).
 - `[ ]` Coordinated burst *with subvectors*: article -> Show HN -> one subreddit -> LinkedIn.
+
+> [!] **DECISION NEEDED — the gate no longer holds.** subcheck is pinned on the public profile at
+> slot #2 while its README still says `pip install subcheck  # once published` and PyPI 404s. It is
+> *featured but not installable*, which is the worst of both. Both original gate conditions (a
+> Checkov merge, article #1) are outside your control and still unmet after a month, and the pin
+> already spent the launch signal. **Either de-gate and ship Phase 3, or unpin.** Recommendation:
+> de-gate. Cheap either way: reserve the `subcheck` and `subvectors` PyPI names now (5 min, both
+> currently unregistered and squattable).
 
 ## Phase 2.5 — technical-soundness pass (done this cycle)
 
@@ -108,7 +118,7 @@ Open follow-ups from the same pass:
 - `[ ]` GitLab CI `sub` format support. *(good first issue)*
 - `[ ]` Decide `equals`/`in` type handling: coerce, or keep type-strict + documented (currently the
   latter).
-- `[ ]` Close test-coverage holes (90% now): `glob` branch, `--token-file`, `--token -` stdin,
+- `[ ]` Close test-coverage holes (92% now): `glob` branch, `--token-file`, `--token -` stdin,
   `load_policy_file` suffix logic, `to_json`/summary counts, and the `rc=2` bad-policy/bad-JSON paths.
 - `[ ]` Cosmetic: rephrase the `# nosec B105` comments so bandit stops emitting "Test in comment"
   warnings (prose after `# nosec` is parsed as test IDs).

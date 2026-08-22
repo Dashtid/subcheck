@@ -4,7 +4,11 @@ All notable changes are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); this project follows
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] - 2026-08-22
+
+First published release (PyPI, via OIDC trusted publishing — fittingly, the same mechanism the
+tool inspects). Also ships `action.yml`, so a workflow can gate with
+`uses: Dashtid/subcheck@v0.2.0` instead of a curl+pip snippet.
 
 ### Added
 - Immutable subject-claims support: `parse_github_sub` decodes both the legacy and the immutable

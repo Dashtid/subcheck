@@ -50,10 +50,12 @@ you write — nothing to configure, no cloud account, no network.
 ## Install
 
 ```bash
-pip install subcheck        # once published
+pip install subcheck        # v0.2.0 — first PyPI release rolling out
 # or from a clone:
 pip install -e ".[dev]"
 ```
+
+Or skip installing entirely and use the GitHub Action — see [In a workflow](#in-a-workflow).
 
 ## Usage
 
@@ -175,6 +177,24 @@ token since January 2023 and are present on legacy-format tokens too. You do not
 the migration to pin them; doing it now is what makes a policy survive the switch.
 
 ## In a workflow
+
+The one-line form — this repo ships an [`action.yml`](action.yml) that requests the job's OIDC
+token and checks it against your policy:
+
+```yaml
+permissions:
+  id-token: write
+  contents: read
+steps:
+  - uses: actions/checkout@v4
+  - name: Verify the OIDC token is scoped as expected
+    uses: Dashtid/subcheck@v0.2.0        # or @main
+    with:
+      policy: .github/oidc-policy.yaml
+      audience: sts.amazonaws.com        # default
+```
+
+Or by hand, if you'd rather see every moving part:
 
 ```yaml
 permissions:

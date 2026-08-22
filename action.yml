@@ -1,0 +1,47 @@
+name: "subcheck"
+description: >-
+  Decode the GitHub Actions OIDC token this job would present to a cloud and
+  assert its claims against an expected-claims policy. Fails the step the moment
+  a claim drifts from what you declared - before role assumption, with a
+  readable per-claim diff instead of a cryptic cloud-side AccessDenied.
+author: "David Dashti"
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  policy:
+    description: "Path to the expected-claims policy file (.yaml/.yml/.json)"
+    required: true
+  audience:
+    description: "OIDC audience to request the token for"
+    required: false
+    default: "sts.amazonaws.com"
+  format:
+    description: "Report format: text or json"
+    required: false
+    default: "text"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Request the OIDC token and check it against the policy
+      shell: bash
+      # Inputs are passed via env, never interpolated into the script -
+      # ${{ }} inside run: is the template-injection footgun this tool's
+      # own ecosystem (zizmor) flags.
+      env:
+        SUBCHECK_POLICY: ${{ inputs.policy }}
+        SUBCHECK_AUDIENCE: ${{ inputs.audience }}
+        SUBCHECK_FORMAT: ${{ inputs.format }}
+        SUBCHECK_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        if [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+          echo "error: no OIDC token available - the calling job needs 'permissions: id-token: write'" >&2
+          exit 2
+        fi
+        python3 -m pip install --quiet --disable-pip-version-check "$SUBCHECK_ACTION_PATH"
+        curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+          "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$SUBCHECK_AUDIENCE" \
+          | python3 -c "import sys, json; print(json.load(sys.stdin)['value'])" \
+          | python3 -m subcheck --token - --policy "$SUBCHECK_POLICY" --format "$SUBCHECK_FORMAT"

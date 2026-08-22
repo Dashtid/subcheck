@@ -60,14 +60,23 @@ new/renamed/transferred repos on **2026-07-15**; name-based policies silently st
 - `[ ]` (upstream, separate subvectors session) record subcheck as the corpus's first consumer in
   subvectors' BACKLOG "Consumer-adoption" item — the adoption datapoint its success metric tracks.
 
-## Phase 3 — ship it properly
+## Phase 3 — ship it properly (DE-GATED 2026-08-22 — decision taken, executed)
 
-- `[ ]` `release.yml` with PyPI **trusted publishing (OIDC)**; cut `v0.1.0` (git tag + GitHub
-  Release). Flip README "once published" to a real `pip install subcheck`.
-- `[ ]` `action.yml` wrapper so adoption is `uses: Dashtid/subcheck@v1` instead of the curl+jq+pip
-  snippet — the biggest adoption-friction fix for a tool pitched as a CI gate.
-- `[ ]` ~20 specific GitHub Topics (`oidc`, `github-actions`, `aws-iam`, `cicd-security`,
-  `supply-chain-security`, `least-privilege`, ...); seed 3-5 `good first issue` tickets.
+- `[x]` `release.yml` — PyPI **trusted publishing (OIDC)**, fires on a published GitHub Release
+  (build job + publish job, `environment: pypi`, `id-token: write`). Version bumped **0.2.0**
+  (immutable-claims support is a feature); CHANGELOG rolled; tag `v0.2.0` pushed (inert until the
+  Release is created).
+- `[x]` `action.yml` composite wrapper — `uses: Dashtid/subcheck@v0.2.0` (or `@main`, which works
+  already: it installs from the action path, no PyPI needed). Inputs passed via `env`, never
+  interpolated into `run:` (the template-injection footgun).
+- `[x]` Topics: added `aws-iam`, `cicd-security`, `supply-chain-security`, `least-privilege`
+  (11 total). Seeded 5 `good first issue` tickets (#2-#6: forbidden rule, SARIF, GitLab sub,
+  `--fail-on`, `--claim-map`).
+- `[ ]` **[HUMAN — the two remaining clicks]** (1) pypi.org → Publishing → add a *pending
+  publisher* for project `subcheck`: owner `Dashtid`, repo `subcheck`, workflow `release.yml`,
+  environment `pypi`. (2) `gh release create v0.2.0 --title "subcheck 0.2.0" --notes-from-tag`
+  (or via UI) — the release event fires the publish. Optionally repeat the pending-publisher step
+  for `subvectors` to reserve that name too.
 
 ## Phase 4 — launch (the gate has partly fired on its own)
 

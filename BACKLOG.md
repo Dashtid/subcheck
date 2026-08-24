@@ -125,6 +125,12 @@ Open follow-ups from the same pass:
 - `[ ]` `forbidden` rule (assert a claim is NOT one of a set). *(good first issue)*
 - `[ ]` SARIF output so findings land in the GitHub Security tab. *(good first issue)*
 - `[ ]` GitLab CI `sub` format support. *(good first issue)*
+- `[ ]` **Decode `job_workflow_ref:` subjects** — subvectors already exercises the bare
+  `job_workflow_ref:owner/repo/.github/workflows/x.yml@ref` customized-sub form and
+  `parse_github_sub` returns it raw-only. Found 2026-08-24 by the new differential drift check
+  (`scripts/check_fixture_drift.py`, weekly via `fixture-drift.yml`); the form sits in that
+  script's `KNOWN_UNDECODED_PREFIXES` allowlist, and implementing the decoder means removing
+  the allowlist entry so coverage enforcement resumes.
 - `[ ]` Decide `equals`/`in` type handling: coerce, or keep type-strict + documented (currently the
   latter).
 - `[ ]` Close test-coverage holes (92% now): `glob` branch, `--token-file`, `--token -` stdin,

@@ -1,0 +1,41 @@
+name: Fixture drift vs subvectors
+
+# The github_subjects.json fixture is derived from the subvectors vector
+# suite. This job runs the differential drift check against subvectors@main:
+# weekly (the coupling signal - upstream grew a subject form we cannot
+# decode), and on any change to the fixture, the checker, or this workflow.
+# Deliberately NOT part of ci.yml: an upstream addition must not redden
+# unrelated subcheck PRs.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+  push:
+    paths:
+      - tests/fixtures/github_subjects.json
+      - scripts/check_fixture_drift.py
+      - .github/workflows/fixture-drift.yml
+  pull_request:
+    paths:
+      - tests/fixtures/github_subjects.json
+      - scripts/check_fixture_drift.py
+      - .github/workflows/fixture-drift.yml
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: Dashtid/subvectors
+          path: subvectors
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Check fixture drift
+        run: python scripts/check_fixture_drift.py --subvectors subvectors

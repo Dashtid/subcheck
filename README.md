@@ -1,5 +1,10 @@
 # subcheck
 
+[![PyPI](https://img.shields.io/pypi/v/subcheck)](https://pypi.org/project/subcheck/)
+[![CI](https://github.com/Dashtid/subcheck/actions/workflows/ci.yml/badge.svg)](https://github.com/Dashtid/subcheck/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/pypi/pyversions/subcheck)](https://pypi.org/project/subcheck/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Decode a GitHub Actions **OIDC token's claims** and check them against an expected-claims
 policy — so a workflow fails *before* an over-broad cloud trust policy lets the wrong branch,
 workflow, or trigger assume your role.
@@ -186,7 +191,7 @@ permissions:
   id-token: write
   contents: read
 steps:
-  - uses: actions/checkout@v4
+  - uses: actions/checkout@v7
   - name: Verify the OIDC token is scoped as expected
     uses: Dashtid/subcheck@v0.2.0        # or @main
     with:
@@ -201,7 +206,7 @@ permissions:
   id-token: write
   contents: read
 steps:
-  - uses: actions/checkout@v4
+  - uses: actions/checkout@v7
   - run: pip install subcheck
   - name: Verify the OIDC token is scoped as expected
     run: |

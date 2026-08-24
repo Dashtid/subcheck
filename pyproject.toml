@@ -21,6 +21,7 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Topic :: Security",
   "Intended Audience :: Developers",
+  "Typing :: Typed",
 ]
 dependencies = ["PyYAML>=6.0"]
 

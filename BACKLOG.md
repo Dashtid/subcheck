@@ -72,11 +72,11 @@ new/renamed/transferred repos on **2026-07-15**; name-based policies silently st
 - `[x]` Topics: added `aws-iam`, `cicd-security`, `supply-chain-security`, `least-privilege`
   (11 total). Seeded 5 `good first issue` tickets (#2-#6: forbidden rule, SARIF, GitLab sub,
   `--fail-on`, `--claim-map`).
-- `[ ]` **[HUMAN — the two remaining clicks]** (1) pypi.org → Publishing → add a *pending
-  publisher* for project `subcheck`: owner `Dashtid`, repo `subcheck`, workflow `release.yml`,
-  environment `pypi`. (2) `gh release create v0.2.0 --title "subcheck 0.2.0" --notes-from-tag`
-  (or via UI) — the release event fires the publish. Optionally repeat the pending-publisher step
-  for `subvectors` to reserve that name too.
+- `[x]` **[HUMAN — the two remaining clicks] DONE 2026-08-24.** Pending publishers added for
+  BOTH `subcheck` and `subvectors` (name reserved; subvectors' release.yml exists but stays
+  inert behind its vectors-packaging gate, see subvectors ROADMAP item 4). Release v0.2.0
+  published, trusted-publishing run green, `pypi.org/pypi/subcheck/json` returns 200 —
+  **`pip install subcheck` works.** The "featured but not installable" state is over.
 
 ## Phase 4 — launch (the gate has partly fired on its own)
 
@@ -84,13 +84,10 @@ new/renamed/transferred repos on **2026-07-15**; name-based policies silently st
 - `[ ]` Record the demo GIF/asciinema (a PR failing on `sub=...:pull_request`).
 - `[ ]` Coordinated burst *with subvectors*: article -> Show HN -> one subreddit -> LinkedIn.
 
-> [!] **DECISION NEEDED — the gate no longer holds.** subcheck is pinned on the public profile at
-> slot #2 while its README still says `pip install subcheck  # once published` and PyPI 404s. It is
-> *featured but not installable*, which is the worst of both. Both original gate conditions (a
-> Checkov merge, article #1) are outside your control and still unmet after a month, and the pin
-> already spent the launch signal. **Either de-gate and ship Phase 3, or unpin.** Recommendation:
-> de-gate. Cheap either way: reserve the `subcheck` and `subvectors` PyPI names now (5 min, both
-> currently unregistered and squattable).
+> [x] **DECISION RESOLVED 2026-08-24 — de-gated and shipped.** v0.2.0 is live on PyPI via
+> trusted publishing; both names reserved as pending publishers. The pin at slot #2 now points
+> at an installable tool. Remaining Phase 4 items (demo GIF, coordinated burst with subvectors)
+> are launch amplification, not gates.
 
 ## Phase 2.5 — technical-soundness pass (done this cycle)
 

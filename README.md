@@ -50,7 +50,7 @@ you write — nothing to configure, no cloud account, no network.
 ## Install
 
 ```bash
-pip install subcheck        # v0.2.0 — first PyPI release rolling out
+pip install subcheck
 # or from a clone:
 pip install -e ".[dev]"
 ```

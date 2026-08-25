@@ -4,6 +4,23 @@ All notable changes are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); this project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-08-25
+
+### Added
+- **Token-lifetime notes** for `exp` / `nbf` / `iat`, as advisories and never failures: enforcing a
+  token's lifetime is the cloud provider's job at assume-time, and gating on it here would imply an
+  authentication control this tool explicitly does not provide. They pay for themselves on the
+  saved-fixture case — a stale `--claims` file that expired days ago otherwise passes forever and
+  has quietly stopped testing anything. A future `nbf`, an `iat` more than five minutes ahead, and
+  an `exp` at or before `iat` are reported the same way. Non-numeric or absent time claims are
+  ignored rather than guessed at, and `build_report(..., now=)` is injectable so tests are
+  clock-free.
+- **Reusable-workflow pinning example**: `examples/claims-reusable-workflow.json` +
+  `examples/policy-reusable-workflow.json`, pinning `job_workflow_ref` to an immutable version tag
+  (swap the tag for a branch and the gate fails, which is the point). The README section covers the
+  `job_workflow_ref` vs `workflow_ref` distinction — the entry workflow in your repo versus the
+  shared workflow that actually held the token — and how subject customization interacts with it.
+
 ## [0.3.0] - 2026-08-25
 
 Sub-customization support, and the correctness fix that came with it. Both were found by

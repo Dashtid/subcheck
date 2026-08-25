@@ -181,6 +181,52 @@ claims:
 token since January 2023 and are present on legacy-format tokens too. You do not have to wait for
 the migration to pin them; doing it now is what makes a policy survive the switch.
 
+## Pinning the reusable workflow
+
+`sub` says which *repository* minted the token; `job_workflow_ref` says which *workflow code* did.
+For a repo whose deploys run through a shared reusable workflow, that second question is the
+supply-chain one — and it is worth pinning to an immutable tag rather than a branch, because a
+branch moves:
+
+```yaml
+claims:
+  job_workflow_ref:
+    matches: '^acme/shared-workflows/\.github/workflows/deploy\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'
+```
+
+Try it with [`examples/claims-reusable-workflow.json`](examples/claims-reusable-workflow.json) and
+[`examples/policy-reusable-workflow.json`](examples/policy-reusable-workflow.json); swapping the
+token's `@refs/tags/v3.2.1` for `@refs/heads/main` fails the gate, which is the point.
+
+> **`job_workflow_ref` vs `workflow_ref`.** `workflow_ref` is the *entry* workflow in your own repo;
+> `job_workflow_ref` is the workflow the job actually ran, which for a reusable-workflow call is the
+> shared one in another repo. Pin the latter to control what code held the token.
+
+GitHub can also fold `job_workflow_ref` into `sub` itself via subject customization
+(`include_claim_keys`). subcheck decodes both documented shapes and flags it, because a customized
+`sub` **replaces** the default `repo:ORG/REPO:...` grammar rather than extending it — cloud trust
+conditions written for the default format stop matching, wildcards included.
+
+## Token lifetime notes
+
+If the claims carry `exp`, `nbf`, or `iat`, subcheck comments on them — as **notes, never failures**.
+Enforcing a token's lifetime is the cloud provider's job at assume-time, and gating on it here would
+imply an authentication control this tool does not provide.
+
+They earn their place on the common case instead: running against a **saved** `--claims` or
+`--token-file` fixture. Real GitHub OIDC tokens live for minutes, so an expired one usually means the
+fixture has drifted out of date and has quietly stopped testing anything:
+
+```text
+Notes:
+  [i] token expired at 2027-01-15 09:12:03Z (6d ago). Real GitHub OIDC tokens live for minutes, so
+      this usually means a saved --claims/--token-file fixture rather than a live token - check the
+      fixture is still representative.
+```
+
+A future `nbf`, an `iat` more than five minutes ahead, and an `exp` at or before `iat` are reported
+the same way.
+
 ## In a workflow
 
 The one-line form — this repo ships an [`action.yml`](action.yml) that requests the job's OIDC
@@ -193,7 +239,7 @@ permissions:
 steps:
   - uses: actions/checkout@v7
   - name: Verify the OIDC token is scoped as expected
-    uses: Dashtid/subcheck@v0.3.0        # or @main
+    uses: Dashtid/subcheck@v0.4.0        # or @main
     with:
       policy: .github/oidc-policy.yaml
       audience: sts.amazonaws.com        # default

@@ -1,0 +1,15 @@
+{
+  "iss": "https://token.actions.githubusercontent.com",
+  "aud": "sts.amazonaws.com",
+  "sub": "repo:acme/payments-api:environment:production",
+  "repository": "acme/payments-api",
+  "repository_id": "456789",
+  "repository_owner": "acme",
+  "repository_owner_id": "123456",
+  "job_workflow_ref": "acme/shared-workflows/.github/workflows/deploy.yml@refs/tags/v3.2.1",
+  "workflow_ref": "acme/payments-api/.github/workflows/release.yml@refs/heads/main",
+  "environment": "production",
+  "runner_environment": "github-hosted",
+  "actor": "deploy-bot",
+  "event_name": "push"
+}

@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import asdict
+from datetime import datetime, timezone
 
 from .decoder import parse_github_sub
 from .validator import FAIL, MISSING, PASS, Result
 
 
-def build_report(claims: dict, results: list[Result]) -> dict:
+def build_report(claims: dict, results: list[Result], now: float | None = None) -> dict:
+    """Assemble the report. ``now`` (unix seconds) is injectable for tests."""
     passed = all(r.status == PASS for r in results)
     return {
         "passed": passed,
@@ -19,10 +22,80 @@ def build_report(claims: dict, results: list[Result]) -> dict:
             "fail": sum(r.status == FAIL for r in results),
             "missing": sum(r.status == MISSING for r in results),
         },
-        "notes": _advisories(claims, results),
+        "notes": _advisories(claims, results) + _time_notes(claims, now),
         "results": [asdict(r) for r in results],
         "claims": claims,
     }
+
+
+# Beyond this much clock disagreement, an iat in the future is worth mentioning.
+# GitHub's OIDC tokens are short-lived (minutes), so a few minutes of skew is
+# ordinary and a large gap is not.
+_SKEW_TOLERANCE_SECONDS = 300
+
+
+def _as_epoch(value: object) -> int | None:
+    """A JWT time claim is a NumericDate: seconds since the epoch, as a number."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return int(value)
+
+
+def _iso(epoch: int) -> str:
+    return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
+
+
+def _duration(seconds: int) -> str:
+    seconds = abs(int(seconds))
+    if seconds < 90:
+        return f"{seconds}s"
+    if seconds < 5400:
+        return f"{seconds // 60}m"
+    if seconds < 172800:
+        return f"{seconds // 3600}h"
+    return f"{seconds // 86400}d"
+
+
+def _time_notes(claims: dict, now: float | None = None) -> list[str]:
+    """Advisory notes on exp/nbf/iat. Deliberately NON-GATING.
+
+    subcheck inspects a token the job already received; enforcing lifetime is the
+    cloud provider's job at assume-time, so an expired token is not a policy
+    failure here. It IS worth saying out loud, because the common cause is not a
+    real expiry at all: running against a SAVED --claims file, where a stale
+    fixture would otherwise pass forever and quietly stop testing anything.
+    """
+    ts = time.time() if now is None else now
+    notes: list[str] = []
+
+    exp = _as_epoch(claims.get("exp"))
+    if exp is not None and ts > exp:
+        notes.append(
+            f"token expired at {_iso(exp)} ({_duration(ts - exp)} ago). Real GitHub OIDC "
+            "tokens live for minutes, so this usually means a saved --claims/--token-file "
+            "fixture rather than a live token - check the fixture is still representative."
+        )
+
+    nbf = _as_epoch(claims.get("nbf"))
+    if nbf is not None and ts < nbf:
+        notes.append(
+            f"token is not valid until {_iso(nbf)} ({_duration(nbf - ts)} from now); "
+            "the nbf claim is in the future, which points at clock skew."
+        )
+
+    iat = _as_epoch(claims.get("iat"))
+    if iat is not None and iat - ts > _SKEW_TOLERANCE_SECONDS:
+        notes.append(
+            f"token reports being issued at {_iso(iat)}, {_duration(iat - ts)} in the future - "
+            "the clock here and the issuer's disagree by more than the 5-minute tolerance."
+        )
+    if iat is not None and exp is not None and exp <= iat:
+        notes.append(
+            f"token claims to expire at or before it was issued "
+            f"(iat {_iso(iat)}, exp {_iso(exp)}); these claims are not internally consistent."
+        )
+
+    return notes
 
 
 GITHUB_ISSUER = "https://token.actions.githubusercontent.com"

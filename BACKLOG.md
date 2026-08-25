@@ -49,8 +49,10 @@ new/renamed/transferred repos on **2026-07-15**; name-based policies silently st
   hint when an immutable token fails a name-based pattern.
 - `[x]` `repository_id`/`repository_owner_id` ranked high severity (the durable trust anchors).
 - `[x]` Example pair: `examples/claims-immutable.json` + `examples/policy-immutable.json`.
-- `[ ]` (optional) `job_workflow_ref` pinning example + severity — the reusable-workflow supply-chain
-  anchor AWS now exposes as a first-class condition key.
+- `[x]` `job_workflow_ref` pinning example + severity — **DONE 2026-08-25 (v0.4.0)**. Severity was
+  already high; added `examples/claims-reusable-workflow.json` + `policy-reusable-workflow.json`
+  (tag-pinned shared workflow; swapping the tag for a branch fails the gate) and a README section
+  covering `job_workflow_ref` vs `workflow_ref` and the sub-customization interaction.
 
 ## Phase 2 — first consumer of subvectors (done this cycle)
 
@@ -122,7 +124,11 @@ Open follow-ups from the same pass:
 
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
-- `[ ]` Optional `exp`/`iat`/`nbf` time checks — flag an expired or not-yet-valid token.
+- `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never
+  failures: enforcing lifetime is the cloud provider's job at assume-time, and gating would imply
+  an authentication control this tool does not provide. The value is the saved-fixture case (an
+  expired `--claims` file that quietly stopped testing anything); future `nbf`, `iat` >5min ahead,
+  and `exp` <= `iat` are reported the same way. `now` is injectable so the tests are clock-free.
 - `[ ]` `forbidden` rule (assert a claim is NOT one of a set). *(good first issue)*
 - `[ ]` SARIF output so findings land in the GitHub Security tab. *(good first issue)*
 - `[ ]` GitLab CI `sub` format support. *(good first issue)*

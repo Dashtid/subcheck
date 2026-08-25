@@ -61,8 +61,9 @@ new/renamed/transferred repos on **2026-07-15**; name-based policies silently st
   `parse_github_sub` agrees with the subvectors subject grammar on all 9 (legacy, both immutable ID
   forms, case-sensitivity, nested-branch ref, tag ref, customized multi-segment sub). One-way,
   test-time, self-contained (CI-safe) — subvectors is never a runtime dependency.
-- `[ ]` (upstream, separate subvectors session) record subcheck as the corpus's first consumer in
-  subvectors' BACKLOG "Consumer-adoption" item — the adoption datapoint its success metric tracks.
+- `[x]` (upstream) subcheck recorded as the corpus's first consumer in subvectors' BACKLOG
+  "Consumer-adoption" item — **done 2026-08-25**, together with the decoder bug that consumption
+  caught (the combined-customization subject; fixed in 0.3.0).
 
 ## Phase 3 — ship it properly (DE-GATED 2026-08-22 — decision taken, executed)
 

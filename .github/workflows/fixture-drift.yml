@@ -1,11 +1,14 @@
 name: Fixture drift vs subvectors
 
 # The github_subjects.json fixture is derived from the subvectors vector
-# suite. This job runs the differential drift check against subvectors@main:
-# weekly (the coupling signal - upstream grew a subject form we cannot
-# decode), and on any change to the fixture, the checker, or this workflow.
-# Deliberately NOT part of ci.yml: an upstream addition must not redden
-# unrelated subcheck PRs.
+# suite. Two jobs, two questions:
+#   pinned  - is the fixture consistent with the RELEASE we pin in the dev
+#             extra? Deterministic: drifts only when the pin is bumped.
+#             Runs on changes to the fixture, the checker, the pin, or this
+#             workflow.
+#   canary  - did subvectors MAIN grow a subject form we cannot decode yet?
+#             Weekly + manual. Deliberately not part of ci.yml: an upstream
+#             addition must never redden unrelated subcheck PRs.
 
 on:
   schedule:
@@ -15,18 +18,36 @@ on:
     paths:
       - tests/fixtures/github_subjects.json
       - scripts/check_fixture_drift.py
+      - pyproject.toml
       - .github/workflows/fixture-drift.yml
   pull_request:
     paths:
       - tests/fixtures/github_subjects.json
       - scripts/check_fixture_drift.py
+      - pyproject.toml
       - .github/workflows/fixture-drift.yml
 
 permissions:
   contents: read
 
 jobs:
-  drift:
+  pinned:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install with the pinned corpus
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Check fixture drift against the pinned release
+        run: python scripts/check_fixture_drift.py --installed
+
+  canary:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -37,5 +58,5 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
-      - name: Check fixture drift
+      - name: Check fixture drift against subvectors main
         run: python scripts/check_fixture_drift.py --subvectors subvectors

@@ -60,6 +60,27 @@ def upstream_github_subjects(subvectors: Path) -> set[str]:
     return subjects
 
 
+def installed_github_subjects() -> set[str]:
+    """Subjects from the PINNED subvectors release (the dev-extra dependency).
+
+    Reading via subvectors.corpus instead of a checkout makes the everyday CI
+    check deterministic: it drifts only when the pin is bumped, never because
+    upstream main moved. The weekly canary still runs against a checkout of
+    main to give early warning of new subject forms.
+    """
+    try:
+        from subvectors import corpus
+    except ImportError:
+        print('[-] subvectors is not installed - pip install -e ".[dev]" first')
+        raise SystemExit(2) from None
+    return {
+        vec["subject"]
+        for name in corpus.suite_names()
+        for vec in corpus.load_suite(name)["vectors"]
+        if vec.get("issuer") == "github" and isinstance(vec.get("subject"), str)
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument(
@@ -68,15 +89,23 @@ def main() -> int:
         default=Path(__file__).resolve().parents[2] / "subvectors",
         help="path to a subvectors checkout (default: ../subvectors)",
     )
+    ap.add_argument(
+        "--installed",
+        action="store_true",
+        help="read the corpus from the installed (pinned) subvectors package instead of a checkout",
+    )
     args = ap.parse_args()
 
-    if not args.subvectors.is_dir():
+    if args.installed:
+        upstream = installed_github_subjects()
+    elif not args.subvectors.is_dir():
         print(f"[-] subvectors checkout not found at {args.subvectors}")
         return 2
+    else:
+        upstream = upstream_github_subjects(args.subvectors)
 
     fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
     fixture_subjects = {s["subject"] for s in fixture["subjects"]}
-    upstream = upstream_github_subjects(args.subvectors)
     print(f"[i] fixture subjects: {len(fixture_subjects)}, upstream: {len(upstream)}")
 
     failed = False

@@ -45,15 +45,16 @@ def _iso(epoch: int) -> str:
     return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
 
 
-def _duration(seconds: int) -> str:
-    seconds = abs(int(seconds))
-    if seconds < 90:
-        return f"{seconds}s"
-    if seconds < 5400:
-        return f"{seconds // 60}m"
-    if seconds < 172800:
-        return f"{seconds // 3600}h"
-    return f"{seconds // 86400}d"
+def _duration(seconds: float) -> str:
+    """Coarse human duration. Takes float because `now` is unix-epoch seconds."""
+    whole = abs(int(seconds))
+    if whole < 90:
+        return f"{whole}s"
+    if whole < 5400:
+        return f"{whole // 60}m"
+    if whole < 172800:
+        return f"{whole // 3600}h"
+    return f"{whole // 86400}d"
 
 
 def _time_notes(claims: dict, now: float | None = None) -> list[str]:

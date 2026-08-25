@@ -109,10 +109,12 @@ refutation) before any article gets published. Findings that were *facts*, fixed
 
 Open follow-ups from the same pass:
 
-- `[ ]` **subvectors carries the same half-immutable tolerance** — `src/subvectors/github.py:56`
-  `RepoSegment.immutable` uses `owner_id is not None or repo_id is not None`. Fix in a subvectors
-  session so the two grammars genuinely agree (subcheck's decoder docstring claims they do).
+- `[x]` **subvectors half-immutable tolerance — FIXED upstream 2026-08-18.**
+  `src/subvectors/github.py:62` now reads `owner_id is not None and repo_id is not None`, so the
+  two grammars agree again. Nothing left to do here.
 - `[ ]` Re-vendor the subject fixtures if subvectors adds a malformed/asymmetric subject vector.
+  (Not triggered yet: subvectors added no one-sided-`@id` vector; its grammar test covers the
+  branch directly.)
 
 ## Correctness / quality parking lot
 

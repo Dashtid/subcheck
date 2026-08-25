@@ -31,7 +31,9 @@ Status keys: `[ ]` todo · `[~]` in progress · `[x]` done this cycle.
 - `[x]` CI: add Python 3.13, add `mypy` (green), add coverage report; ship `py.typed` + add
   `types-PyYAML` to dev deps.
 - `[x]` Commit + push the above (done; tree clean and in sync).
-- `[ ]` Open follow-up issues for the good-first-issue items below (`gh issue list` returns empty).
+- `[x]` Open follow-up issues for the good-first-issue items below. **Done — the "returns empty"
+  note was stale**: issues #2-#6 (forbidden rule, SARIF, GitLab sub, `--fail-on`, `--claim-map`)
+  are open and labelled, verified 2026-08-25.
 
 ## Phase 1 — immutable subject-claims awareness (done this cycle)
 

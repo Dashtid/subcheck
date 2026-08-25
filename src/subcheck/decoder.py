@@ -51,6 +51,44 @@ _SUB_RE = re.compile(
     r"(?::(?P<context>.*))?$"
 )
 
+# GitHub's OIDC sub-CUSTOMIZATION (include_claim_keys) can append job_workflow_ref
+# to the default grammar, or replace the grammar with it entirely:
+#
+#   repo:ORG/REPO:environment:ENV:job_workflow_ref:ORG/AUTOMATION/.github/workflows/w.yml@REF
+#   job_workflow_ref:ORG/AUTOMATION/.github/workflows/w.yml@REF
+#
+# The appended form must be split off BEFORE the context is parsed: the context
+# value is otherwise read to end-of-string and swallows the whole tail, so
+# `environment` decodes as "ENV:job_workflow_ref:..." instead of "ENV".
+# Source: https://docs.github.com/en/actions/reference/security/oidc
+_JWR_KEY = "job_workflow_ref"
+_JWR_PREFIX = f"{_JWR_KEY}:"
+_JWR_SEP = f":{_JWR_KEY}:"
+
+
+def _parse_job_workflow_ref(value: str) -> dict:
+    """Decompose a ``job_workflow_ref`` value: ``OWNER/REPO/PATH@REF``.
+
+    Split on the LAST ``@``: a workflow path may legally contain one, and the
+    documented shape always ends with ``@REF``.
+
+    The workflow's repository is deliberately NOT reported as ``repository`` -
+    a reusable workflow usually lives in a DIFFERENT repo from the caller, so
+    attributing it to the calling repository would be a mis-parse of the same
+    kind this function exists to avoid.
+    """
+    out: dict = {_JWR_KEY: value}
+    location, sep, ref = value.rpartition("@")
+    if not sep:
+        return out  # no @REF: not the documented shape, so claim nothing more
+    out["job_workflow_git_ref"] = ref
+    owner, _, rest = location.partition("/")
+    repo, _, path = rest.partition("/")
+    if owner and repo and path:
+        out["job_workflow_repository"] = f"{owner}/{repo}"
+        out["job_workflow_path"] = path
+    return out
+
 
 def parse_github_sub(sub: str) -> dict:
     """Best-effort parse of the GitHub Actions ``sub`` claim into its components.
@@ -69,9 +107,25 @@ def parse_github_sub(sub: str) -> dict:
         repo:acme@1/api@2:ref:refs/heads/main   -> repository, repository_id, ..., format=immutable
         repo:acme/api@2:ref:refs/heads/main     -> format=malformed (only one ID present)
         repo:acme/api:pull_request              -> repository, context=pull_request
+
+    Customized subjects (``include_claim_keys``) set ``customized`` and decode the
+    ``job_workflow_ref`` portion; the jwr-only form carries no repository at all::
+
+        repo:acme/api:environment:prod:job_workflow_ref:acme/auto/.github/workflows/w.yml@refs/heads/main
+        job_workflow_ref:acme/auto/.github/workflows/w.yml@refs/heads/main
     """
     out: dict = {"raw": sub}
-    m = _SUB_RE.match(sub)
+
+    if sub.startswith(_JWR_PREFIX):
+        # jwr-only customization: the sub no longer starts with 'repo:', so it
+        # says nothing about the calling repository - report only what it holds.
+        out["customized"] = True
+        out.update(_parse_job_workflow_ref(sub[len(_JWR_PREFIX) :]))
+        return out
+
+    head, jwr_sep, jwr_value = sub.partition(_JWR_SEP)
+
+    m = _SUB_RE.match(head)
     if m is None:
         return out
     owner, repo = m.group("owner"), m.group("repo")
@@ -89,10 +143,12 @@ def parse_github_sub(sub: str) -> dict:
     else:
         out["format"] = "legacy"
     context = m.group("context")
-    if not context:
-        return out
-    kind, _, value = context.partition(":")
-    out["context"] = kind
-    if value:
-        out[kind] = value
+    if context:
+        kind, _, value = context.partition(":")
+        out["context"] = kind
+        if value:
+            out[kind] = value
+    if jwr_sep:
+        out["customized"] = True
+        out.update(_parse_job_workflow_ref(jwr_value))
     return out

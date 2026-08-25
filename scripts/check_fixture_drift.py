@@ -8,11 +8,19 @@ CC0-1.0). Two things can rot silently, and this script fails loudly on both:
    ``subject`` of an ``issuer: github`` vector upstream. If one disappears,
    the fixture cites a source that no longer says what we claim it says.
 
-2. COVERAGE - every upstream GitHub subject must decode through
-   ``parse_github_sub`` (a decoded result carries a ``format`` key). A subject
-   that comes back raw-only means subvectors now exercises a subject grammar
-   subcheck cannot parse - exactly the "refresh from upstream when subvectors
-   adds subject forms" trigger the fixture's ``_source`` note promises.
+2. COVERAGE - every upstream GitHub subject must decode to something beyond its
+   raw text. A subject that comes back raw-only means subvectors now exercises
+   a subject grammar subcheck cannot parse - exactly the "refresh from upstream
+   when subvectors adds subject forms" trigger the fixture's ``_source`` note
+   promises.
+
+3. MIS-PARSE - no decoded value may contain an embedded ``:claim_key:``
+   sequence. Coverage alone is too weak to catch a WRONG parse: the documented
+   combined-customization subject
+   ``repo:O/R:environment:prod:job_workflow_ref:...`` decoded "successfully"
+   while ``environment`` swallowed the whole job_workflow_ref tail (found and
+   fixed 2026-08-25). A parse that silently absorbs a later claim key is a
+   defect even though it produced fields.
 
 Known-undecoded forms are allowlisted below rather than left to redden the
 scheduled run forever: a check that is always red carries no information.
@@ -39,11 +47,13 @@ FIXTURE = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "github_s
 # Subject grammars subvectors exercises that subcheck deliberately does not
 # decode YET. Each entry must have a matching BACKLOG.md item; delete the
 # entry when the decoder learns the form so coverage enforcement resumes.
-KNOWN_UNDECODED_PREFIXES = (
-    # Bare job_workflow_ref subjects (customized sub claim, reusable-workflow
-    # pinning). BACKLOG: "Decode job_workflow_ref subjects".
-    "job_workflow_ref:",
-)
+# Empty since 2026-08-25 (job_workflow_ref subjects now decode) - kept because
+# an allowlist with a paper trail beats a red check nobody can act on.
+KNOWN_UNDECODED_PREFIXES: tuple[str, ...] = ()
+
+# Claim keys that appear as ``:key:`` separators inside a customized sub. A
+# decoded VALUE containing one means the parse ran past its own field.
+SUB_CLAIM_KEYS = ("job_workflow_ref", "repository_owner", "environment", "ref", "repo")
 
 
 def upstream_github_subjects(subvectors: Path) -> set[str]:
@@ -120,12 +130,10 @@ def main() -> int:
     else:
         print("[+] provenance: every fixture subject still exists upstream verbatim")
 
-    undecoded = sorted(
-        s
-        for s in upstream
-        if "format" not in parse_github_sub(s)
-        and not s.startswith(KNOWN_UNDECODED_PREFIXES)
-    )
+    checked = [s for s in upstream if not s.startswith(KNOWN_UNDECODED_PREFIXES)]
+
+    # Decoding to nothing but 'raw' means the grammar was not recognized at all.
+    undecoded = sorted(s for s in checked if len(parse_github_sub(s)) <= 1)
     if undecoded:
         failed = True
         print(f"[-] COVERAGE: {len(undecoded)} upstream subject(s) do not decode:")
@@ -134,9 +142,25 @@ def main() -> int:
         print("    subvectors added a subject form parse_github_sub cannot parse.")
         print("    Either implement the form or allowlist it WITH a BACKLOG item.")
     else:
-        skipped = sum(1 for s in upstream if s.startswith(KNOWN_UNDECODED_PREFIXES))
+        skipped = len(upstream) - len(checked)
         note = f" ({skipped} known-undecoded allowlisted)" if skipped else ""
         print(f"[+] coverage: every upstream github subject decodes{note}")
+
+    swallowed: list[str] = []
+    for s in checked:
+        for key, value in parse_github_sub(s).items():
+            if key == "raw" or not isinstance(value, str):
+                continue
+            if any(f":{k}:" in value or value.startswith(f"{k}:") for k in SUB_CLAIM_KEYS):
+                swallowed.append(f"{s}\n        {key} = {value!r}")
+    if swallowed:
+        failed = True
+        print(f"[-] MIS-PARSE: {len(swallowed)} decoded value(s) contain a later claim key:")
+        for entry in swallowed:
+            print(f"      {entry}")
+        print("    A field ran past its own boundary and absorbed the rest of the subject.")
+    else:
+        print("[+] mis-parse: no decoded value absorbs a later claim key")
 
     return 1 if failed else 0
 

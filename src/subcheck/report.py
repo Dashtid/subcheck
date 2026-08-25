@@ -42,12 +42,22 @@ def _advisories(claims: dict, results: list[Result]) -> list[str]:
     if isinstance(iss, str) and iss != GITHUB_ISSUER:
         return []
     parsed = parse_github_sub(sub)
+    notes: list[str] = []
+    if parsed.get("customized"):
+        # A customized sub is not a variant of the default format - it REPLACES
+        # it. Conditions written for 'repo:ORG/REPO:...' stop matching, and a
+        # repo-wide wildcard stops matching too, so this fails closed and looks
+        # like a broken deployment rather than a claims change.
+        notes.append(
+            "sub uses a CUSTOMIZED format (job_workflow_ref is included via "
+            "include_claim_keys); trust conditions written for the default "
+            "'repo:ORG/REPO:...' format no longer match this token, wildcards included."
+        )
     fmt = parsed.get("format")
     if fmt is None:
-        return []
+        return notes
     sub_result = next((r for r in results if r.claim == "sub"), None)
     name_based_sub_pin = sub_result is not None and "@" not in str(sub_result.expected)
-    notes: list[str] = []
     if fmt == "immutable":
         oid, rid = parsed.get("repository_owner_id"), parsed.get("repository_id")
         notes.append(

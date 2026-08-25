@@ -4,6 +4,33 @@ All notable changes are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); this project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-08-25
+
+Sub-customization support, and the correctness fix that came with it. Both were found by
+differential-testing the decoder against the [subvectors](https://github.com/Dashtid/subvectors)
+conformance corpus, now pinned as a dev dependency (`subvectors==0.2.0`) so the check moves only
+when the pin is bumped deliberately.
+
+### Fixed
+- **A customized `sub` mis-decoded, and it could fail a correct policy.** For the documented
+  combined form `repo:ORG/REPO:environment:ENV:job_workflow_ref:...`, the context value was read
+  to end-of-string, so `environment` decoded as `"ENV:job_workflow_ref:ORG/AUTO/..."` instead of
+  `"ENV"` — a policy pinning `environment: prod` then failed against a token whose environment
+  really was `prod`. The `job_workflow_ref` portion is now split off before the context is parsed.
+
+### Added
+- `job_workflow_ref` subject decoding, both documented shapes: appended to the default grammar,
+  and the jwr-only form that replaces it. Decomposed into `job_workflow_repository`,
+  `job_workflow_path` and `job_workflow_git_ref`. The workflow's repository is deliberately *not*
+  reported as `repository` — a reusable workflow usually lives in a different repo than the caller,
+  so attributing it to the caller would be the same class of mis-parse.
+- `customized` flag plus a report note: a customized `sub` does not vary the default format, it
+  **replaces** it, so trust conditions written for `repo:ORG/REPO:...` stop matching — wildcards
+  included. That fails closed and reads like a broken deployment rather than a claims change.
+- Differential drift check (`scripts/check_fixture_drift.py`, workflow `fixture-drift.yml`) with
+  three directions — provenance, coverage, and mis-parse — run against the pinned corpus on every
+  relevant change, and weekly as a canary against subvectors `main`.
+
 ## [0.2.0] - 2026-08-22
 
 First published release (PyPI, via OIDC trusted publishing — fittingly, the same mechanism the

@@ -122,12 +122,17 @@ Open follow-ups from the same pass:
 - `[ ]` `forbidden` rule (assert a claim is NOT one of a set). *(good first issue)*
 - `[ ]` SARIF output so findings land in the GitHub Security tab. *(good first issue)*
 - `[ ]` GitLab CI `sub` format support. *(good first issue)*
-- `[ ]` **Decode `job_workflow_ref:` subjects** — subvectors already exercises the bare
-  `job_workflow_ref:owner/repo/.github/workflows/x.yml@ref` customized-sub form and
-  `parse_github_sub` returns it raw-only. Found 2026-08-24 by the new differential drift check
-  (`scripts/check_fixture_drift.py`, weekly via `fixture-drift.yml`); the form sits in that
-  script's `KNOWN_UNDECODED_PREFIXES` allowlist, and implementing the decoder means removing
-  the allowlist entry so coverage enforcement resumes.
+- `[x]` **Decode `job_workflow_ref:` subjects — DONE 2026-08-25 (v0.3.0), and it turned up a
+  real bug.** The drift check flagged the bare
+  `job_workflow_ref:owner/repo/.github/workflows/x.yml@ref` form as undecoded (2026-08-24).
+  Implementing it surfaced the worse defect next door: the DOCUMENTED combined form
+  `repo:O/R:environment:prod:job_workflow_ref:...` decoded "successfully" while `environment`
+  swallowed the entire tail (`prod:job_workflow_ref:...`), so a policy pinning
+  `environment: prod` failed against a token whose environment really was prod. Both fixed;
+  `customized` is now reported, with a report note that a customized sub invalidates
+  default-format trust conditions entirely. The drift check gained a third direction
+  (MIS-PARSE) because coverage alone could never have caught this — it only asks whether a
+  subject parses, not whether it parses *correctly*.
 - `[ ]` Decide `equals`/`in` type handling: coerce, or keep type-strict + documented (currently the
   latter).
 - `[ ]` Close test-coverage holes (92% now): `glob` branch, `--token-file`, `--token -` stdin,

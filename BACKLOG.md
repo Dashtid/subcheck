@@ -12,9 +12,12 @@ expectation language and a fail-fast CI gate. It is **not** a cloud-trust-condit
 provider's job at assume-time. Keep that line sharp (see Non-goals).
 
 **Sequencing.** subvectors is the flagship; subcheck is the finished companion. The original plan
-was to keep subcheck parked until a subvectors v0.1 + article #1 launch burst — but as of
-2026-08-16 that gate has partly fired on its own (subcheck is pinned at public slot #2) while both
-gate conditions remain outside your control. See the DECISION in Phase 4 before doing more here.
+was to keep subcheck parked until a subvectors v0.1 + article #1 launch burst. **That gate is gone
+— retired 2026-08-29.** Every leg of it dissolved on its own: the pin fired ahead of schedule
+(public slot #2, 2026-08-16), both packages shipped to PyPI regardless (subcheck v0.2.0 and
+subvectors v0.2.0, both 2026-08-24), and the article programme was **closed 2026-08-29** — article
+#1 was never drafted and now never will be. Nothing in this repo is gated on anything: ship a slice
+when it is ready. Phase 4 below is the shipping history, not a gate.
 
 Status keys: `[ ]` todo · `[~]` in progress · `[x]` done this cycle.
 
@@ -87,7 +90,11 @@ new/renamed/transferred repos on **2026-07-15**; name-based policies silently st
 
 - `[x]` **Set the GitHub pin** — done, and at slot **#2** (verified 2026-08-16), ahead of its gate.
 - `[ ]` Record the demo GIF/asciinema (a PR failing on `sub=...:pull_request`).
-- `[ ]` Coordinated burst *with subvectors*: article -> Show HN -> one subreddit -> LinkedIn.
+- `[ ]` Coordinated burst *with subvectors* — **article leg dropped 2026-08-29** (the article
+  programme is closed; the shipped artifact is the announcement). What remains, if it is ever worth
+  the evening: Show HN -> one subreddit -> LinkedIn, all pointing at `pip install subcheck` and the
+  subvectors corpus. Low priority by design — an installable package and a merged upstream PR are
+  the durable proof; a launch post decays in a week.
 
 > [x] **DECISION RESOLVED 2026-08-24 — de-gated and shipped.** v0.2.0 is live on PyPI via
 > trusted publishing; both names reserved as pending publishers. The pin at slot #2 now points
@@ -97,12 +104,17 @@ new/renamed/transferred repos on **2026-07-15**; name-based policies silently st
 ## Phase 2.5 — technical-soundness pass (done this cycle)
 
 Driven by a research fan-out (article-saturation + primary-source verification + adversarial
-refutation) before any article gets published. Findings that were *facts*, fixed here:
+refutation) originally run ahead of an article that was never drafted — the article programme
+closed 2026-08-29. [i] The pass keeps all of its value regardless: its output was never the article,
+it was the corrections below, which landed in the code and the README. Findings that were *facts*,
+fixed here:
 
 - `[x]` **The fork claim was wrong.** A fork's `pull_request` cannot mint a token for the upstream
   repo — `id-token: write` is downgraded and `ACTIONS_ID_TOKEN_REQUEST_TOKEN` is never injected.
-  README now lists the real paths. This error is endemic to the published literature; do not
-  reintroduce it, and it is worth an article of its own (see below).
+  README now lists the real paths. This error is endemic to the third-party literature; do not
+  reintroduce it. **Kept as reference material, not as an article idea (2026-08-29).** The durable
+  home for a correction this sharp is the README plus an upstream PR against a tool that encodes the
+  wrong model — an artifact someone can cite, not a post that scrolls away.
 - `[x]` Half-immutable subjects (`@id` on one segment) reported as `malformed`, not `immutable`.
 - `[x]` Migration hints suppressed for non-github.com issuers (GHES keeps mutable names).
 - `[x]` Legacy hint no longer implies format follows from repo age (org/repo opt-in exists).

@@ -103,8 +103,15 @@ These are decisions, not gaps. See `BACKLOG.md` → Non-goals.
 - **It does not simulate cloud trust conditions.** Your policy's `glob` is not "what AWS would do."
   Grading real cloud rules is subvectors' job. Blurring that line risks being wrong in exactly the
   way subvectors exists to catch.
-- **It is not released.** No PyPI package, no git tag, no `action.yml` — on purpose. The launch is
-  parked until the flagship and the companion article are ready.
+
+> [i] **A third entry used to sit here and is now false on both counts.** It read: *"It is not
+> released. No PyPI package, no git tag, no `action.yml` — on purpose. The launch is parked until
+> the flagship and the companion article are ready."* Retired 2026-08-29. subcheck v0.2.0 shipped to
+> PyPI on 2026-08-24 via OIDC trusted publishing (`pip install subcheck`), tag `v0.2.0` and the
+> `action.yml` composite wrapper are live, and subvectors released the same day — so the flagship
+> half of the gate fired. The article half no longer exists: the article programme was closed
+> 2026-08-29 in favour of artifact-shaped proof (shipped packages, merged upstream PRs, the cited
+> subvectors corpus). Release status is not a non-goal any more; it is history.
 
 ## Running it
 

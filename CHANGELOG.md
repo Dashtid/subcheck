@@ -4,6 +4,17 @@ All notable changes are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); this project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- Pinned corpus bumped `subvectors==0.2.1` -> `0.3.0`, the release carrying the first six
+  `observed` vectors. **No fixture re-derivation was needed and that is a verified fact, not an
+  assumption**: `git diff v0.2.1..v0.3.0 -- vectors/` changes no `"subject"` line at all — 0.3.0
+  adds `observation` blocks and the schema that enforces them, so the subject grammar this
+  project consumes is byte-identical. All three drift directions stay green against the new pin
+  (9 vendored subjects, 21 upstream). Bumping still means re-deriving whenever a subject string
+  *does* move.
+
 ## [0.4.0] - 2026-08-25
 
 ### Added

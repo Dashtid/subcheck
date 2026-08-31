@@ -16,7 +16,8 @@ from .validator import validate
 
 def _load_claims(args: argparse.Namespace) -> dict:
     if args.token:
-        token = sys.stdin.read() if args.token == "-" else args.token  # noqa: S105  # nosec B105 - a JWT, not a secret to store
+        # A JWT read from stdin/argv, not a stored secret.
+        token = sys.stdin.read() if args.token == "-" else args.token  # noqa: S105  # nosec B105
         return decode_claims(token)
     if args.token_file:
         return decode_claims(Path(args.token_file).read_text(encoding="utf-8"))

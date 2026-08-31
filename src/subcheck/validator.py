@@ -8,7 +8,8 @@ from dataclasses import dataclass
 
 from .policy import ClaimRule, Policy
 
-PASS = "PASS"  # noqa: S105  # nosec B105 - a status constant, not a secret
+# A status constant, not a secret - the linters flag the literal name only.
+PASS = "PASS"  # noqa: S105  # nosec B105
 FAIL = "FAIL"
 MISSING = "MISSING"
 

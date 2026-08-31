@@ -135,6 +135,20 @@ Open follow-ups from the same pass:
 
 ## Correctness / quality parking lot
 
+- `[x]` **Policy-shape validation — DONE 2026-08-31 (v0.4.1), and it found two silent fail-opens.**
+  A 22-agent audit sweep (5 lenses, each finding then adversarially verified; roughly half the raw
+  findings were refuted) turned up two ways a malformed policy passed every token it was written to
+  reject, both reproduced through the shipped CLI: claim rules written at the **top level** were
+  dropped without a word (only `issuer`/`audience` were read, so the gate went green having checked
+  the issuer alone), and **`in:` given a string** became Python substring containment, so `prod`
+  satisfied `in: production` and so did the empty string. Rule *keys* had been validated since the
+  start; rule *values* never were. Both now raise on the documented rc=2 path, along with a
+  non-compiling `matches`, a non-string `glob`, and a quoted `required`.
+  **The lesson worth keeping:** green CI, 93% coverage and a tidy backlog all held while these
+  shipped, because no test had ever written a *malformed policy*. Coverage measures the lines you
+  execute, not the inputs you never thought to send. A gate whose own config can silently weaken it
+  is the failure this tool exists to prevent, so policy-shape tests belong next to claim tests.
+
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never
@@ -158,10 +172,13 @@ Open follow-ups from the same pass:
   subject parses, not whether it parses *correctly*.
 - `[ ]` Decide `equals`/`in` type handling: coerce, or keep type-strict + documented (currently the
   latter).
-- `[ ]` Close test-coverage holes (92% now): `glob` branch, `--token-file`, `--token -` stdin,
-  `load_policy_file` suffix logic, `to_json`/summary counts, and the `rc=2` bad-policy/bad-JSON paths.
-- `[ ]` Cosmetic: rephrase the `# nosec B105` comments so bandit stops emitting "Test in comment"
-  warnings (prose after `# nosec` is parsed as test IDs).
+- `[~]` Close test-coverage holes (**95% now, up from 92%**; `validator.py` reached 100%). Closed
+  2026-08-31 (v0.4.1): the `glob` branch, the `equals` FAIL path, and the `rc=2` bad-policy paths
+  — see `tests/test_policy_shape.py`. Still open: `--token-file`, `--token -` stdin,
+  `load_policy_file` suffix logic, `to_json`/summary counts, and `__main__.py`.
+- `[x]` Cosmetic: rephrase the `# nosec B105` comments — **DONE 2026-08-31**. The prose moved to
+  its own line above; `# nosec B105` is now bare, so bandit stops parsing "a status constant, not
+  a secret" as a list of test IDs and runs silent.
 
 ## Non-goals (hold the line)
 

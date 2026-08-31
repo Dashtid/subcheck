@@ -32,3 +32,45 @@ jobs:
         run: bandit -q -r src
       - name: Tests (pytest)
         run: pytest -q --cov=subcheck --cov-report=term-missing
+
+  # The composite action is the entry point the README advertises
+  # (uses: Dashtid/subcheck@vX). Nothing here had ever executed it, so a break
+  # in action.yml would have surfaced in a user's pipeline, not in CI.
+  # Runs only on same-repo pushes/PRs: a fork PR gets no OIDC token, and the
+  # step exits 2 by design when ACTIONS_ID_TOKEN_REQUEST_TOKEN is absent.
+  action:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # mint the OIDC token the action inspects
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Write a policy matching this very job's token
+        # Context values go through env, never interpolated into run: - the same
+        # template-injection rule action.yml follows.
+        env:
+          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          {
+            echo "issuer: https://token.actions.githubusercontent.com"
+            echo "audience: sts.amazonaws.com"
+            echo "claims:"
+            echo "  repository:"
+            echo "    equals: \"$REPO\""
+            echo "  repository_owner:"
+            echo "    equals: \"$OWNER\""
+            echo "  ref:"
+            echo "    glob: \"refs/*\""
+          } > ci-policy.yaml
+          cat ci-policy.yaml
+      - name: Run the action against it
+        uses: ./
+        with:
+          policy: ci-policy.yaml
+      - name: JSON format still works
+        uses: ./
+        with:
+          policy: ci-policy.yaml
+          format: json

@@ -10,7 +10,7 @@ sibling [subvectors](https://github.com/Dashtid/subvectors) vector suite.
 
 ```bash
 pip install -e ".[dev]"
-pytest -q && ruff check . && bandit -r src
+pytest -q && ruff check . && mypy && bandit -r src
 ```
 
 ## Good first issues
@@ -24,5 +24,5 @@ Small, self-contained additions (labelled `good first issue`):
 
 ## Pull requests
 
-Keep the change focused, add a test, and make sure `pytest`, `ruff check`, and `bandit` pass.
+Keep the change focused, add a test, and make sure `pytest`, `ruff check`, `mypy`, and `bandit` pass - CI runs all four.
 Not sure about scope? Open an issue first — open questions are welcome.

@@ -4,7 +4,47 @@ All notable changes are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); this project follows
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.4.1] - 2026-08-31
+
+### Fixed
+- **A malformed policy could pass every token it was written to reject.** Two silent fail-open
+  paths, both found by an audit sweep and both reproduced through the shipped CLI before fixing:
+  - **Claim rules written at the top level were ignored entirely.** `issuer` and `audience`
+    legitimately live at the top level, so putting the rest of the rules there too is the natural
+    slip - and unknown top-level keys were dropped without a word. A policy pinning `repository`
+    and `sub` that way returned `PASS (1 pass, 0 fail, 0 missing)` and exit 0 against a token from
+    an entirely different repository, having checked only the issuer. Unknown top-level keys are
+    now rejected, matching the unknown-rule-key check that already existed one level down.
+  - **`in:` given a string did substring matching.** `{"in": "production"}` - a one-item YAML list
+    missing its `- ` - became Python containment, so `prod` passed, and so did the empty string.
+    `in` must now be a list.
+- **Rule values are validated, not just rule key names.** `matches` must be a string and must
+  compile; `glob` must be a string; `required` must be a real boolean (`"false"` is a non-empty
+  string, so it silently made an optional claim mandatory). Each of these previously escaped
+  `validate()` as a raw `TypeError`/`re.error` traceback and exited **1** - the "a claim did not
+  match" code - making a broken policy indistinguishable from a real gate failure. They now raise
+  a readable error on the documented rc=2 path. `equals` is deliberately unrestricted: it compares
+  against the claim's real JSON type, so a number is a legitimate rule.
+- **An unparseable YAML policy exited 1 instead of 2.** `yaml.YAMLError` is not a `ValueError`
+  (`json.JSONDecodeError` is), so it slipped past the CLI's bad-input handler.
+- **A claim carrying two constraints reported the wrong one on failure.** `describe()` named only
+  the first constraint, so a `ref` failing its regex was reported against the glob it satisfied.
+  All constraints are now listed, which is also what the validator actually requires.
+
+### Added
+- CI now **executes the composite action** (`uses: ./`) against a policy pinning this repository's
+  own OIDC token, in both text and JSON formats. `action.yml` is the entry point the README
+  advertises and nothing had ever run it, so a break would have surfaced in a user's pipeline
+  rather than here. Skipped on fork PRs, which get no token by design.
+- `tests/test_policy_shape.py` - 20 regression tests; 8 of them fail against the previous release.
+  Also closes three long-standing coverage holes: the `glob` matcher (which had no assertion
+  anywhere despite being a documented rule), the `equals` FAIL path (every prior failure case went
+  through `matches` or an absent claim), and the rc=2 bad-policy paths. Coverage 93% -> 95%, with
+  `validator.py` at 100%.
+
+### Changed
+- The two `# nosec B105` comments no longer carry trailing prose, which bandit was parsing as a
+  comma-separated list of test IDs and warning about on every run.
 
 ### Changed
 - Pinned corpus bumped `subvectors==0.2.1` -> `0.3.0`, the release carrying the first six

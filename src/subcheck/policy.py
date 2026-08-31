@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -26,6 +27,7 @@ CLAIM_SEVERITY = {
 DEFAULT_SEVERITY = "medium"
 
 _ALLOWED_KEYS = {"equals", "in", "matches", "glob", "required"}
+_ALLOWED_TOP_KEYS = {"issuer", "audience", "claims"}
 
 
 @dataclass
@@ -42,15 +44,19 @@ class ClaimRule:
         return CLAIM_SEVERITY.get(self.name, DEFAULT_SEVERITY)
 
     def describe(self) -> str:
+        # Every constraint set on a rule must hold (validator._matches ANDs them),
+        # so describe them all - reporting only the first produced a failure line
+        # that contradicted itself when a claim carried two constraints.
+        parts = []
         if self.equals is not None:
-            return f"equals {self.equals!r}"
+            parts.append(f"equals {self.equals!r}")
         if self.one_of is not None:
-            return f"one of {self.one_of!r}"
+            parts.append(f"one of {self.one_of!r}")
         if self.matches is not None:
-            return f"matches /{self.matches}/"
+            parts.append(f"matches /{self.matches}/")
         if self.glob is not None:
-            return f"glob {self.glob!r}"
-        return "present"
+            parts.append(f"glob {self.glob!r}")
+        return " and ".join(parts) if parts else "present"
 
 
 @dataclass
@@ -62,6 +68,15 @@ def load_policy(data: dict) -> Policy:
     """Build a Policy from a parsed mapping (see the README for the schema)."""
     if not isinstance(data, dict):
         raise ValueError("policy must be a mapping/object")
+    # Claim rules belong under 'claims'. Silently ignoring anything else let a
+    # policy that put its rules at the top level pass every token it was written
+    # to reject, green and rc=0, because only 'issuer'/'audience' were read.
+    unknown_top = set(data) - _ALLOWED_TOP_KEYS
+    if unknown_top:
+        raise ValueError(
+            f"policy: unknown top-level keys {sorted(unknown_top)} - claim rules "
+            "belong under 'claims'; only 'issuer', 'audience' and 'claims' are read"
+        )
     rules: list = []
     if "issuer" in data:
         rules.append(ClaimRule(name="iss", equals=str(data["issuer"])))
@@ -86,13 +101,44 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
         unknown = set(spec) - _ALLOWED_KEYS
         if unknown:
             raise ValueError(f"claim {name!r}: unknown rule keys {sorted(unknown)}")
+        one_of = spec.get("in")
+        if one_of is not None and not isinstance(one_of, list):
+            # `in: production` (a one-item YAML list missing its '- ') became
+            # Python containment: substring matching, so 'prod' and even '' passed.
+            raise ValueError(
+                f"claim {name!r}: 'in' must be a list of values, got "
+                f"{type(one_of).__name__}"
+            )
+        matches = spec.get("matches")
+        if matches is not None:
+            if not isinstance(matches, str):
+                raise ValueError(
+                    f"claim {name!r}: 'matches' must be a regex string, got "
+                    f"{type(matches).__name__}"
+                )
+            try:
+                re.compile(matches)
+            except re.error as exc:
+                raise ValueError(f"claim {name!r}: 'matches' is not a valid regex: {exc}") from exc
+        glob = spec.get("glob")
+        if glob is not None and not isinstance(glob, str):
+            raise ValueError(
+                f"claim {name!r}: 'glob' must be a pattern string, got {type(glob).__name__}"
+            )
+        required = spec.get("required", True)
+        if not isinstance(required, bool):
+            # bool("false") is True, so a quoted boolean silently made an
+            # optional claim mandatory.
+            raise ValueError(
+                f"claim {name!r}: 'required' must be true or false, got {required!r}"
+            )
         return ClaimRule(
             name=name,
             equals=spec.get("equals"),
-            one_of=spec.get("in"),
-            matches=spec.get("matches"),
-            glob=spec.get("glob"),
-            required=bool(spec.get("required", True)),
+            one_of=one_of,
+            matches=matches,
+            glob=glob,
+            required=required,
         )
     raise ValueError(f"claim {name!r}: rule must be a string, list, or mapping")
 
@@ -109,7 +155,13 @@ def load_policy_file(path: str | Path) -> Policy:
                 "PyYAML is required to load YAML policies (pip install PyYAML), "
                 "or use a .json policy instead"
             ) from exc
-        data = yaml.safe_load(text)
+        try:
+            data = yaml.safe_load(text)
+        except yaml.YAMLError as exc:
+            # YAMLError is not a ValueError (json.JSONDecodeError is), so an
+            # unparseable YAML policy escaped the CLI's rc=2 handler and exited 1
+            # - the "a claim did not match" code.
+            raise ValueError(f"policy file {p} is not valid YAML: {exc}") from exc
     else:
         data = json.loads(text)
     return load_policy(data)

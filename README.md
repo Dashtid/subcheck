@@ -24,9 +24,13 @@ OIDC claim inspection: FAIL  (5 pass, 1 fail, 1 missing)
   [-] sub                 high    claim 'sub'='repo:acme/payments-api:pull_request' does not satisfy matches /^repo:acme/payments-api:(ref:refs/heads/main|environment:production|ref:refs/tags/v[0-9].*)$/
   [!] environment         medium  claim 'environment' is required but absent
   [+] runner_environment  medium  claim 'runner_environment' satisfies equals 'github-hosted'
+
+Notes:
+  [i] sub is pinned by name; when this repo adopts the immutable format the sub becomes 'owner@id/repo@id:...' and this pattern stops matching - pin repository_id / repository_owner_id to stay durable. Adoption is automatic for repos created, renamed, or transferred after 2026-07-15, but any repo can be switched on sooner via the org-level or repo-level immutable-subject setting, so do not infer the format from the repo's age.
 ```
 
-Exit code is non-zero on any finding, so the command drops straight into a CI step as a gate.
+Notes are advisory and never change the verdict. Exit code is non-zero on any finding, so the
+command drops straight into a CI step as a gate.
 
 ## Why
 
@@ -267,6 +271,7 @@ steps:
 pip install -e ".[dev]"
 pytest -q          # tests
 ruff check .       # lint
+mypy               # type check (CI enforces this)
 bandit -r src      # security lint
 ```
 

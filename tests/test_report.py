@@ -64,3 +64,25 @@ def test_malformed_half_immutable_sub_is_flagged():
     policy = {"claims": {"sub": {"matches": r"^repo:.*$"}}}
     note = " ".join(_report(claims, policy)["notes"])
     assert "only one segment" in note
+
+
+def test_customized_sub_warns_that_default_format_conditions_stop_matching():
+    # A customized sub REPLACES the default format rather than varying it, so a
+    # trust condition written for 'repo:ORG/REPO:...' stops matching entirely -
+    # wildcards included. That advisory had no test.
+    claims = {
+        "sub": "repo:acme/payments-api:environment:production"
+        ":job_workflow_ref:acme/shared/.github/workflows/deploy.yml@refs/tags/v1.2.3"
+    }
+    note = " ".join(_report(claims, {"claims": {"sub": {"matches": "^repo:acme/"}}})["notes"])
+    assert "CUSTOMIZED" in note
+    assert "wildcards included" in note
+
+
+def test_unparseable_sub_yields_no_format_notes():
+    # A sub that is not a GitHub subject at all (another issuer's format) must
+    # not produce migration advice about a format it does not have.
+    claims = {"sub": "project_path:acme/api:ref_type:branch:ref:main"}
+    report = _report(claims, {"claims": {"sub": {"matches": "^project_path:"}}})
+    assert report["passed"]
+    assert not any("immutable" in n for n in report["notes"])

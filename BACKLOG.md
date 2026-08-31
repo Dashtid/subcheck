@@ -172,10 +172,15 @@ Open follow-ups from the same pass:
   subject parses, not whether it parses *correctly*.
 - `[ ]` Decide `equals`/`in` type handling: coerce, or keep type-strict + documented (currently the
   latter).
-- `[~]` Close test-coverage holes (**95% now, up from 92%**; `validator.py` reached 100%). Closed
-  2026-08-31 (v0.4.1): the `glob` branch, the `equals` FAIL path, and the `rc=2` bad-policy paths
-  — see `tests/test_policy_shape.py`. Still open: `--token-file`, `--token -` stdin,
-  `load_policy_file` suffix logic, `to_json`/summary counts, and `__main__.py`.
+- `[x]` Close test-coverage holes — **DONE 2026-08-31: 92% -> 100%, every module.** The v0.4.1 pass
+  took the `glob` branch, the `equals` FAIL path and the `rc=2` bad-policy paths
+  (`tests/test_policy_shape.py`); the follow-up took the rest (`tests/test_cli_inputs.py`):
+  `--token-file`, `--token -` stdin, both `python -m` entry points, the unknown-policy-suffix
+  branch, the JSON summary counts, malformed-JWT rejection, and the customized-sub and
+  days-duration report branches. **Worth noting which ones mattered**: `--token-file` and
+  `--token -` are how `action.yml` feeds the tool, so the shipped Action's only invocation path had
+  been running on untested code. 100% is not the point and is not a target to defend — it just
+  happens to be where the risk-driven list ran out.
 - `[x]` Cosmetic: rephrase the `# nosec B105` comments — **DONE 2026-08-31**. The prose moved to
   its own line above; `# nosec B105` is now bare, so bandit stops parsing "a status constant, not
   a secret" as a list of test IDs and runs silent.

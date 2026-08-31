@@ -53,3 +53,13 @@ def test_non_numeric_time_claims_are_ignored():
 
 def test_absent_time_claims_produce_no_notes():
     assert _notes({}) == ""
+
+
+def test_long_expiry_is_reported_in_days():
+    # _duration's coarsest branch: anything past 48h reads in days, not hours.
+    from subcheck.report import _duration
+
+    assert _duration(30) == "30s"
+    assert _duration(600) == "10m"
+    assert _duration(7200) == "2h"
+    assert _duration(3 * 86400) == "3d"

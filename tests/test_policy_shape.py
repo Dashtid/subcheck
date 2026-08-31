@@ -158,3 +158,39 @@ def test_equals_shorthand_string_form_fails_too():
     # The bare-string shorthand builds the same rule as {"equals": ...}.
     policy = load_policy({"claims": {"repository": "acme/api"}})
     assert validate({"repository": "attacker/evil"}, policy)[0].status == FAIL
+
+
+# --- the remaining rejection paths -------------------------------------------
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        (["not", "a", "mapping"], "policy must be a mapping"),
+        ({"claims": ["not", "a", "mapping"]}, "'claims' must be a mapping"),
+        ({}, "policy is empty"),
+        ({"claims": {"ref": 42}}, "rule must be a string, list, or mapping"),
+    ],
+)
+def test_structurally_invalid_policies_are_rejected(data, expected):
+    with pytest.raises(ValueError, match=expected):
+        load_policy(data)
+
+
+def test_bad_policy_file_exits_2_through_the_cli(tmp_path, capsys):
+    from subcheck.cli import main
+
+    claims = tmp_path / "c.json"
+    claims.write_text('{"repository": "acme/api"}', encoding="utf-8")
+    policy = tmp_path / "p.json"
+    policy.write_text('{"claims": {"environment": {"in": "production"}}}', encoding="utf-8")
+    assert main(["--claims", str(claims), "--policy", str(policy)]) == 2
+    assert "must be a list" in capsys.readouterr().err
+
+
+def test_missing_policy_file_exits_2_through_the_cli(tmp_path, capsys):
+    from subcheck.cli import main
+
+    claims = tmp_path / "c.json"
+    claims.write_text('{"repository": "acme/api"}', encoding="utf-8")
+    assert main(["--claims", str(claims), "--policy", str(tmp_path / "nope.json")]) == 2
+    assert "error:" in capsys.readouterr().err

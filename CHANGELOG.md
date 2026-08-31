@@ -4,6 +4,16 @@ All notable changes are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); this project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Tests for the claim-input paths that had none: `--token-file`, `--token -` (stdin), and both
+  `python -m` entry points — the three the shipped `action.yml` actually uses, so the Action's only
+  invocation path had been running on untested code. Plus malformed-JWT rejection, the
+  unknown-policy-suffix branch, the JSON summary counts, the structurally-invalid-policy rejections
+  through the CLI, and the customized-sub and days-duration report branches.
+  Coverage 95% -> **100%**, every module. (Tests only; no behaviour change, nothing to release.)
+
 ## [0.4.1] - 2026-08-31
 
 ### Fixed

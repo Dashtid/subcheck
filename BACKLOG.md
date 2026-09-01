@@ -130,8 +130,15 @@ Open follow-ups from the same pass:
   `src/subvectors/github.py:62` now reads `owner_id is not None and repo_id is not None`, so the
   two grammars agree again. Nothing left to do here.
 - `[ ]` Re-vendor the subject fixtures if subvectors adds a malformed/asymmetric subject vector.
-  (Not triggered yet: subvectors added no one-sided-`@id` vector; its grammar test covers the
-  branch directly.)
+  (Still not triggered for THIS form: subvectors added no one-sided-`@id` vector; its grammar test
+  covers the branch directly.) **A different form did fire it, 2026-09-02**: the 0.5.2 pin brought
+  `repo:octo-org/octo-repo` - a subject with no `ref`, `environment` or event segment - and every
+  one of the nine vendored subjects carried a context, so the optional-context branch had no
+  fixture reaching it. Re-derived from `vectors/` (9 -> 10), and the entry pins `context` as
+  **absent**, because the omission is the whole point of the vector upstream. Worth noting the
+  mechanism: the drift check's COVERAGE direction asks whether upstream subjects *decode*, and this
+  one always did - what caught it was reading the delta on a deliberate pin bump. Coverage of the
+  corpus is not the same question as coverage of the grammar.
 
 ## Correctness / quality parking lot
 

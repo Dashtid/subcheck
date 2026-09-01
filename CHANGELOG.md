@@ -6,6 +6,22 @@ All notable changes are documented here. Format based on
 
 ## [Unreleased]
 
+### Changed
+- Pinned corpus bumped `subvectors==0.3.0` -> `0.5.0`. **No fixture re-derivation was needed and
+  that is a verified fact, not an assumption**: comparing every `issuer: github` subject string
+  across `v0.3.0..v0.5.0` shows **none removed and none changed** - the one addition,
+  `repo:octo-org/octo-repo:environment:Sandbox`, is a new *value* of the `environment:` form the
+  fixture already covers, not a new grammar. All three drift directions stay green against the new
+  pin (9 vendored subjects, 22 upstream; provenance, coverage and mis-parse all clean). Bumping
+  still means re-deriving whenever a subject string *does* move.
+
+  What the two releases in between actually carry, since the pin now spans them: 0.4.x put the
+  whole AWS tranche on committed transcripts (11 `observed` vectors, each linking the raw request
+  and response) and recorded that AWS's `iam:CreateRole` guardrail validates only the FIRST value
+  of a `sub` condition's value list. 0.5.0 adds the `ForAllValues:`/`ForAnyValue:` set-operator
+  tranche and a `condition.qualifier` schema property. None of it touches the subject grammar this
+  project consumes, which is why the fixture holds.
+
 ## [0.4.2] - 2026-09-01
 
 ### Fixed

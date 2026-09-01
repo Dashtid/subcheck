@@ -39,6 +39,13 @@ def _matches(rule: ClaimRule, value) -> bool:
 
 def validate(claims: dict, policy: Policy) -> list[Result]:
     """Check each policy rule against the claims and return one Result per rule."""
+    # `rule.name not in claims` is legal on any container, so a list or tuple read
+    # as "every claim absent" - MISSING for a required rule, but PASS for an
+    # optional one, so an all-optional policy passed claims that held nothing at
+    # all. The only thing that stopped a green report was an unrelated crash further
+    # down, on claims.get(). Reject the shape here rather than lean on that accident.
+    if not isinstance(claims, dict):
+        raise ValueError(f"claims must be a mapping/object, got {type(claims).__name__}")
     results: list[Result] = []
     for rule in policy.rules:
         expected = rule.describe()

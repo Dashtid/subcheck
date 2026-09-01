@@ -13,6 +13,9 @@ from .validator import FAIL, MISSING, PASS, Result
 
 def build_report(claims: dict, results: list[Result], now: float | None = None) -> dict:
     """Assemble the report. ``now`` (unix seconds) is injectable for tests."""
+    # Same guard as validate(): both are public API and both read claims as a mapping.
+    if not isinstance(claims, dict):
+        raise ValueError(f"claims must be a mapping/object, got {type(claims).__name__}")
     passed = all(r.status == PASS for r in results)
     return {
         "passed": passed,

@@ -30,7 +30,16 @@ Notes:
 ```
 
 Notes are advisory and never change the verdict. Exit code is non-zero on any finding, so the
-command drops straight into a CI step as a gate.
+command drops straight into a CI step as a gate:
+
+| code | meaning |
+|------|---------|
+| `0`  | every rule passed |
+| `1`  | at least one claim FAILed or was required-but-MISSING - the gate caught something |
+| `2`  | bad input: the token, the claims file or the policy could not be read as what it claims to be |
+
+The `1` / `2` split matters in CI. A malformed policy or a claims file that is not a JSON object
+exits `2`, so it reads as "fix your config", never as "the gate caught something".
 
 ## Why
 

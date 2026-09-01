@@ -5,7 +5,7 @@ from .policy import ClaimRule, Policy, load_policy, load_policy_file
 from .report import build_report, to_json, to_text
 from .validator import Result, validate
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 __all__ = [
     "decode_claims",

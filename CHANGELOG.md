@@ -6,13 +6,45 @@ All notable changes are documented here. Format based on
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-09-01
+
+### Fixed
+- **A claims file that is not a JSON object was half-processed instead of rejected.**
+  `decode_claims` has always required the JWT payload to decode to an object; `--claims` went
+  straight to `json.loads` with no such check, so the tool's two claim-input paths disagreed about
+  what "claims" means. Three consequences, all reproduced through the shipped CLI on 0.4.1:
+  - **`validate()` returned *all PASS* for list-shaped claims.** `rule.name not in claims` is legal
+    on any container, so every rule read as absent - MISSING for a required rule, but **PASS** for
+    an optional one. An all-optional policy therefore reported a clean pass over claims holding
+    nothing at all. Nothing downstream caught that on purpose: the report merely happened to crash
+    a few lines later on `claims.get()`, and that accident was the only thing standing between
+    `--claims '[]'` and a green gate. `validate()` and `build_report()` now reject the shape, so
+    the guard does not depend on a crash that a refactor could remove.
+  - **`--claims <non-object> --format json` exited 0**, echoing the input back as though it were a
+    decoded token. That branch consults no policy and calls no `.items()`, so it had no crash to
+    hide behind - a silent success on input that was never claims.
+  - **Every other combination exited 1** - the "a claim did not match" code - with a raw
+    `AttributeError` traceback. That is the same bad-input-indistinguishable-from-a-finding
+    confusion 0.4.1 fixed on the policy side; it now lands on the documented rc=2 path.
+
+  An empty object `{}` is still accepted, and a required rule still reports MISSING against it: the
+  guard rejects the wrong *shape*, not an empty token.
+
 ### Added
+- `tests/test_claims_shape.py` - 28 regression tests, 27 of which fail against 0.4.1. One of them
+  is a parity test asserting that `--token-file` and `--claims` now return the same verdict and the
+  same exit code for the same non-object payload, since that asymmetry is what caused this.
 - Tests for the claim-input paths that had none: `--token-file`, `--token -` (stdin), and both
-  `python -m` entry points — the three the shipped `action.yml` actually uses, so the Action's only
+  `python -m` entry points - the three the shipped `action.yml` actually uses, so the Action's only
   invocation path had been running on untested code. Plus malformed-JWT rejection, the
   unknown-policy-suffix branch, the JSON summary counts, the structurally-invalid-policy rejections
   through the CLI, and the customized-sub and days-duration report branches.
-  Coverage 95% -> **100%**, every module. (Tests only; no behaviour change, nothing to release.)
+  Coverage 95% -> **100%**, every module (still 100% after this release's guards).
+
+### Changed
+- README documents the exit codes explicitly (`0` / `1` / `2`) instead of "non-zero on any
+  finding". Both 0.4.1 and 0.4.2 turn on the 1-vs-2 distinction, and someone wiring this into a CI
+  gate has to know which code means "fix your config" and which means "the gate caught something".
 
 ## [0.4.1] - 2026-08-31
 

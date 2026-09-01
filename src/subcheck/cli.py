@@ -22,7 +22,17 @@ def _load_claims(args: argparse.Namespace) -> dict:
     if args.token_file:
         return decode_claims(Path(args.token_file).read_text(encoding="utf-8"))
     if args.claims:
-        return json.loads(Path(args.claims).read_text(encoding="utf-8"))
+        claims = json.loads(Path(args.claims).read_text(encoding="utf-8"))
+        # decode_claims already rejects a payload that is not a JSON object, but
+        # --claims went straight to json.loads, so a file holding a list or a bare
+        # scalar reached the report unchecked. See validate() for why that shape
+        # is not merely untidy.
+        if not isinstance(claims, dict):
+            raise ValueError(
+                f"--claims file {args.claims} did not decode to a JSON object "
+                f"(got {type(claims).__name__})"
+            )
+        return claims
     raise ValueError("provide one of --token, --token-file, or --claims")
 
 

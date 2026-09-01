@@ -149,6 +149,19 @@ Open follow-ups from the same pass:
   execute, not the inputs you never thought to send. A gate whose own config can silently weaken it
   is the failure this tool exists to prevent, so policy-shape tests belong next to claim tests.
 
+- `[x]` **Claims-shape validation — DONE 2026-09-01 (v0.4.2), found by asking 0.4.1's question of
+  the other input.** The tool takes two things: a policy and a set of claims. v0.4.1 hardened the
+  policy and never asked the same question of the claims, and that gap *was* the bug — `--claims`
+  went straight to `json.loads` while `decode_claims` had always required a JSON object, so the two
+  claim-input paths disagreed about what claims are. A list-shaped claims file made `validate()`
+  return **all PASS** (`rule.name not in claims` is legal on any container, so every rule read as
+  absent, which is PASS when optional); the only thing preventing a green gate was an unrelated
+  crash a few lines later in `build_report`. `--claims <non-object> --format json` exited **0** and
+  echoed the garbage back. Everything else exited **1** on a traceback — bad input wearing the
+  gate-failure exit code, the same confusion 0.4.1 fixed one input over.
+  **The generalisable move:** when a fix hardens one input, check the others *for the same defect*
+  before closing it out. Symmetry between inputs is cheap to check and, here, was the whole finding.
+
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

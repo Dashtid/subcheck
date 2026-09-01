@@ -67,6 +67,13 @@
       "format": "legacy",
       "repository": "octo-org/octo-repo",
       "repository_owner": "octo-org"
+    },
+    {
+      "subject": "repo:octo-org/octo-repo",
+      "format": "legacy",
+      "repository": "octo-org/octo-repo",
+      "repository_owner": "octo-org",
+      "context": null
     }
   ]
 }

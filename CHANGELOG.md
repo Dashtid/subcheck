@@ -7,20 +7,28 @@ All notable changes are documented here. Format based on
 ## [Unreleased]
 
 ### Changed
-- Pinned corpus bumped `subvectors==0.3.0` -> `0.5.0`. **No fixture re-derivation was needed and
-  that is a verified fact, not an assumption**: comparing every `issuer: github` subject string
-  across `v0.3.0..v0.5.0` shows **none removed and none changed** - the one addition,
-  `repo:octo-org/octo-repo:environment:Sandbox`, is a new *value* of the `environment:` form the
-  fixture already covers, not a new grammar. All three drift directions stay green against the new
-  pin (9 vendored subjects, 22 upstream; provenance, coverage and mis-parse all clean). Bumping
-  still means re-deriving whenever a subject string *does* move.
+- Pinned corpus bumped `subvectors==0.3.0` -> `0.5.2`, **and this one did carry a re-derivation**,
+  unlike the two bumps before it. Measured rather than assumed - comparing every `issuer: github`
+  subject string across the span shows **none removed and none changed**, and two added:
+  - `repo:octo-org/octo-repo:environment:Sandbox` (0.5.0) is a new *value* of the `environment:`
+    form the fixture already covers, so it needed nothing.
+  - `repo:octo-org/octo-repo` (0.5.2) is a new **form**: a subject with no `ref`, `environment` or
+    event segment at all. It exercises the optional-context branch of the subject grammar, which no
+    vendored subject reached before, so the fixture's own `_source` promise - "refresh from upstream
+    when subvectors adds subject forms" - is what fires here. Re-derived from `vectors/` rather than
+    copied: the fixture is now 10 subjects, and the new entry pins `context` as **absent**, since
+    what this subject omits is the whole point of it upstream.
 
-  What the two releases in between actually carry, since the pin now spans them: 0.4.x put the
-  whole AWS tranche on committed transcripts (11 `observed` vectors, each linking the raw request
-  and response) and recorded that AWS's `iam:CreateRole` guardrail validates only the FIRST value
-  of a `sub` condition's value list. 0.5.0 adds the `ForAllValues:`/`ForAnyValue:` set-operator
-  tranche and a `condition.qualifier` schema property. None of it touches the subject grammar this
-  project consumes, which is why the fixture holds.
+  All three drift directions green against the new pin (10 vendored, 23 upstream; provenance,
+  coverage and mis-parse clean), 120 tests pass.
+
+  What the releases in the span carry, since the pin now covers them: 0.4.x put the whole AWS
+  tranche on committed transcripts (11 `observed` vectors, each linking the raw request and
+  response) and recorded that AWS's `iam:CreateRole` guardrail validates only the FIRST value of a
+  `sub` condition's value list. 0.5.0 adds the `ForAllValues:`/`ForAnyValue:` set-operator tranche
+  and a `condition.qualifier` schema property. 0.5.1 corrected and commit-pinned the corpus's
+  Checkov citations - worth having under the pin, because the upstream PR this project's findings
+  fed into invites a maintainer to follow those links.
 
 ## [0.4.2] - 2026-09-01
 

@@ -130,6 +130,22 @@ def _advisories(claims: dict, results: list[Result]) -> list[str]:
             "include_claim_keys); trust conditions written for the default "
             "'repo:ORG/REPO:...' format no longer match this token, wildcards included."
         )
+    elif parsed.get("repository") and "context" not in parsed:
+        # 'repo:ORG/REPO' with nothing after it. The default subject always carries a
+        # ref, environment or event segment, so this shape comes from subject
+        # customization (include_claim_keys: ["repo"]) - GitHub documents it as granting
+        # access to all the workflows in a repository, across all branches and tags.
+        # Worth a note because the over-permission lives in what the subject OMITS: an
+        # exact-match condition on this value carries no wildcard for a reviewer to spot
+        # and still admits every branch, tag, environment and pull_request run.
+        notes.append(
+            "sub carries no ref, environment or event segment - it identifies the "
+            "repository and nothing else. Any trust condition matching it admits every "
+            "branch, tag, environment and pull_request run of that repository, including "
+            "a pull_request run on an unmerged branch, and it does so without a wildcard "
+            "for a reviewer to notice. Narrowing means adding claim keys back to the "
+            "subject, not tightening the condition's pattern."
+        )
     fmt = parsed.get("format")
     if fmt is None:
         return notes

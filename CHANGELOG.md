@@ -6,6 +6,19 @@ All notable changes are documented here. Format based on
 
 ## [Unreleased]
 
+### Added
+- **Advisory for a `sub` that identifies the repository and nothing else.** `include_claim_keys:
+  ["repo"]` mints a subject of exactly `repo:ORG/REPO`, with no `ref`, `environment` or event
+  segment. An IAM `StringEquals` condition on that value is an exact match holding no wildcard, and
+  it still admits every branch, tag, environment and `pull_request` run of the repository -
+  including a `pull_request` run on an unmerged branch. The over-permission is in what the subject
+  **omits**, so a review that scans conditions for `*` finds nothing to object to. subcheck now
+  notes the shape whenever it decodes one, and says what actually narrows it: adding claim keys
+  back to the subject, not tightening the condition's pattern. Advisory only, like every other
+  note - it never changes the verdict. Documented in the README's subject-customization section.
+  Found by consuming the corpus: this is upstream's
+  `gh-aws-repo-only-customized-sub-admits-everything`, which arrived with the 0.5.2 pin below.
+
 ### Changed
 - Pinned corpus bumped `subvectors==0.3.0` -> `0.5.2`, **and this one did carry a re-derivation**,
   unlike the two bumps before it. Measured rather than assumed - comparing every `issuer: github`

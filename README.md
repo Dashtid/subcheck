@@ -220,6 +220,14 @@ GitHub can also fold `job_workflow_ref` into `sub` itself via subject customizat
 `sub` **replaces** the default `repo:ORG/REPO:...` grammar rather than extending it — cloud trust
 conditions written for the default format stop matching, wildcards included.
 
+The same mechanism has a sharper edge in the other direction. `include_claim_keys: ["repo"]` mints a
+`sub` of exactly `repo:ORG/REPO`, with no `ref`, `environment` or event segment at all. An IAM
+`StringEquals` condition on that value is an exact match containing no wildcard — and it still admits
+every branch, every tag, every environment and every `pull_request` run of the repository, including
+one on an unmerged branch. The over-permission is in what the subject **omits**, so a review that
+scans conditions for `*` sees nothing wrong. subcheck notes this shape whenever it decodes one, and
+narrowing it means adding claim keys back to the subject rather than tightening the pattern.
+
 ## Token lifetime notes
 
 If the claims carry `exp`, `nbf`, or `iat`, subcheck comments on them — as **notes, never failures**.

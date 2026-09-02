@@ -57,13 +57,25 @@ SUB_CLAIM_KEYS = ("job_workflow_ref", "repository_owner", "environment", "ref", 
 
 
 def upstream_github_subjects(subvectors: Path) -> set[str]:
+    """Subjects from a CHECKOUT of subvectors (the canary path).
+
+    Reads every suite and filters on ``issuer``, deliberately NOT on the filename.
+    The installed-corpus path enumerates suites through ``corpus.suite_names()`` and
+    filters the same way, so a ``github`` vector living in a suite whose name does not
+    begin with ``github-`` would otherwise be seen by one path and not the other - and
+    the canary exists precisely to warn before the pinned check reddens.
+    """
     subjects: set[str] = set()
-    vector_files = sorted(subvectors.glob("vectors/github-*.json"))
+    vector_files = sorted(subvectors.glob("vectors/*.json"))
     if not vector_files:
-        print(f"[-] no vectors/github-*.json under {subvectors} - wrong path?")
+        print(f"[-] no vectors/*.json under {subvectors} - wrong path?")
         raise SystemExit(2)
     for path in vector_files:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            print(f"[-] {path} is not valid JSON: {exc}")
+            raise SystemExit(2) from None
         for vec in data.get("vectors", []):
             if vec.get("issuer") == "github" and isinstance(vec.get("subject"), str):
                 subjects.add(vec["subject"])

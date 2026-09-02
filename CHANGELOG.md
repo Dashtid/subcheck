@@ -6,6 +6,8 @@ All notable changes are documented here. Format based on
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-02
+
 ### Added
 - **Advisory for a `sub` that identifies the repository and nothing else.** `include_claim_keys:
   ["repo"]` mints a subject of exactly `repo:ORG/REPO`, with no `ref`, `environment` or event

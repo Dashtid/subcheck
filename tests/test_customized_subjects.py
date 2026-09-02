@@ -113,3 +113,53 @@ def test_a_customized_subject_can_still_name_the_repository():
     assert parsed["repository"] == "octo-org/octo-repo"
     assert parsed["environment"] == "production"
     assert "does not name a repository" not in _notes(sub)
+
+
+def test_a_repository_id_pin_is_not_called_org_wide():
+    # 'repository_id' names exactly one repository, and keeps naming it across renames
+    # and transfers. The org-wide note used to fire here because the gate looked only
+    # for 'repository' - and its remedy ("add 'repo'") pushed the user off the immutable
+    # identifier that the immutable-format advisory and the README both recommend.
+    sub = "repository_id:1296269:environment:production"
+    parsed = parse_github_sub(sub)
+    assert parsed["repository_id"] == "1296269"
+    assert "repository" not in parsed
+    assert "does not name a repository" not in _notes(sub)
+
+
+def test_the_most_durable_customized_subject_is_not_called_org_wide():
+    # Both numeric ids and an environment: the tightest customized subject a user can
+    # mint. It must not collect an over-permission warning.
+    sub = "repository_owner_id:12345:repository_id:1296269:environment:production"
+    assert "does not name a repository" not in _notes(sub)
+
+
+def test_the_jwr_only_form_is_not_called_org_wide():
+    # The jwr-only subject omits the CALLING repository by design - the control is the
+    # workflow file, which is the reusable-workflow pattern the README documents and
+    # examples/policy-reusable-workflow.json ships. Warning that it "does not name a
+    # repository" would contradict this tool's own advice.
+    sub = "job_workflow_ref:acme/auto/.github/workflows/deploy.yml@refs/heads/main"
+    note = _notes(sub)
+    assert "does not name a repository" not in note
+    assert "job_workflow_ref is included" in note
+
+
+def test_a_customized_subject_with_no_owner_is_not_described_as_org_scoped():
+    # With no repository_owner anywhere in the subject, "every repository in the
+    # organization" understates it: the github.com issuer is shared, so nothing scopes
+    # the condition to the reader's own org at all.
+    note = _notes("environment:production:ref:refs/heads/main")
+    assert "does not name a repository" in note
+    assert "ANY organization" in note
+    assert "every repository in the organization" not in note
+
+
+def test_another_issuers_encoded_colon_gets_no_github_lecture():
+    # %3A is not a GitHub invention. A GitLab-shaped subject does not decode as a GitHub
+    # one, and with no 'iss' claim to screen on there is nothing else to stop the
+    # GitHub-specific encoding note from landing on it.
+    claims = {"sub": "project_path:acme/api:environment:prod%3Aeu"}
+    policy = load_policy({"claims": {"sub": {"equals": claims["sub"]}}})
+    notes = build_report(claims, validate(claims, policy))["notes"]
+    assert not [n for n in notes if "percent-encoded colon" in n], notes

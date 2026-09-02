@@ -120,7 +120,13 @@ def _advisories(claims: dict, results: list[Result]) -> list[str]:
         return []
     parsed = parse_github_sub(sub)
     notes: list[str] = []
-    if parsed.get("percent_encoded"):
+    decoded_as_github = bool(parsed.get("format") or parsed.get("customized"))
+    if parsed.get("percent_encoded") and decoded_as_github:
+        # Gated on the subject actually decoding as a GitHub one. %3A is not a GitHub
+        # invention, and with no 'iss' to screen on, an unrecognised subject carrying it
+        # (GitLab's 'project_path:grp/proj:env:prod%3Aeu', say) would otherwise collect
+        # a lecture about GitHub's encoding rule that does not apply to it.
+        #
         # "Any ':' within the metadata values will be replaced with %3A in the subject
         # claim." A colon in an environment name is the case that bites: the name reads
         # as 'Production:V1' everywhere in the GitHub UI, so that is what gets pinned,
@@ -148,17 +154,36 @@ def _advisories(claims: dict, results: list[Result]) -> list[str]:
             "default 'repo:ORG/REPO:...' format no longer match this token, wildcards "
             "included."
         )
-        if not parsed.get("repository"):
+        names_repo = any(parsed.get(key) for key in ("repository", "repository_id"))
+        if not names_repo and "job_workflow_ref" not in parsed:
             # GitHub's own documented example is of exactly this shape:
             # 'environment:production%3Aeastus:repository_owner:octo-org'. It names an
             # owner and an environment and never names the repository, so an exact,
             # wildcard-free condition on it admits every repo in the org - including
             # ones created after the policy was written.
+            #
+            # 'repository_id' counts as naming the repository: it pins exactly one, and
+            # keeps pinning it across renames and transfers. Telling someone who pinned
+            # the numeric id to "add 'repo'" would push them off the immutable
+            # identifier every other advisory here tells them to prefer.
+            #
+            # The jwr-only form is excluded for a different reason: it omits the calling
+            # repository BY DESIGN. Its control is the workflow file, which is the
+            # reusable-workflow pattern the README documents and examples/ ships, so an
+            # org-wide warning would contradict this tool's own advice.
+            scope = (
+                "every repository in the organization"
+                if parsed.get("repository_owner") or parsed.get("repository_owner_id")
+                else "every repository in ANY organization - nothing in this subject "
+                "scopes it to yours, and the github.com issuer is shared"
+            )
             notes.append(
                 "the customized sub does not name a repository at all, so a condition "
-                "matching it is satisfied by every repository in the organization that "
-                "presents the same claims - including repositories created after the "
-                "condition was written. Add 'repo' to include_claim_keys to bound it."
+                f"matching it is satisfied by {scope} that presents the same claims - "
+                "including repositories created after the condition was written. Add "
+                "'repository_id' (durable across renames) or 'repo' to "
+                "include_claim_keys to bound it; tightening the condition's pattern "
+                "cannot."
             )
     elif parsed.get("repository") and "context" not in parsed:
         # 'repo:ORG/REPO' with nothing after it. The default subject always carries a

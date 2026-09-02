@@ -74,6 +74,35 @@
       "repository": "octo-org/octo-repo",
       "repository_owner": "octo-org",
       "context": null
+    },
+    {
+      "subject": "environment:production%3Aeastus:repository_owner:octo-org",
+      "customized": true,
+      "percent_encoded": true,
+      "repository_owner": "octo-org",
+      "environment": "production:eastus",
+      "repository": null,
+      "format": null
+    },
+    {
+      "subject": "repo:octo-org/octo-repo:environment:Production%3AV1",
+      "format": "legacy",
+      "percent_encoded": true,
+      "repository": "octo-org/octo-repo",
+      "repository_owner": "octo-org",
+      "context": "environment",
+      "environment": "Production:V1"
+    },
+    {
+      "subject": "job_workflow_ref:octo-org/octo-automation/.github/workflows/oidc.yml@refs/heads/main",
+      "customized": true,
+      "job_workflow_ref": "octo-org/octo-automation/.github/workflows/oidc.yml@refs/heads/main",
+      "job_workflow_repository": "octo-org/octo-automation",
+      "job_workflow_path": ".github/workflows/oidc.yml",
+      "job_workflow_git_ref": "refs/heads/main",
+      "repository": null,
+      "format": null
     }
-  ]
+  ],
+  "_selection": "Derived by FORM, not by value: a new upstream subject earns an entry only when it reaches a branch of parse_github_sub that no vendored subject already reaches. That is why subvectors 0.6.0's 'environment:Production-sandbox' is absent (a new value of the environment form already covered) while 'environment:Production%3AV1' is present (the only vendored subject whose decoded value differs from its raw text, so the sole guard on the percent-decoding)."
 }

@@ -32,6 +32,58 @@ All notable changes are documented here. Format based on
 - **The customized-`sub` note blamed `job_workflow_ref` even when that was not the customization.**
   It was written when the only customized shapes subcheck decoded were the two `job_workflow_ref`
   ones, and it asserted that cause unconditionally. It now names what actually happened.
+- **The org-wide note fired on three shapes where it was false**, one of them the most durable
+  customized subject a user can mint. The gate asked only whether `repository` was absent, which is
+  not the same question as whether the subject names a repository. Reproduced against the shipped
+  code before the fix, all three with `iss` set to the github.com issuer:
+  - `repository_id:1296269:environment:production` - a numeric id names exactly one repository and
+    goes on naming it across renames and transfers. The note called it org-wide, and its remedy
+    ("add `repo`") pushed the reader off the immutable identifier that the immutable-format advisory
+    and the README's own migration section both tell them to prefer. The gate now accepts
+    `repository_id` as naming the repository, and the remedy offers it first.
+  - `repository_owner_id:12345:repository_id:1296269:environment:production` - same false fire, on
+    a subject that is pinned about as tightly as the claim keys allow.
+  - `job_workflow_ref:...@refs/heads/main` - the jwr-only form omits the CALLING repository by
+    design; its control is the workflow file. That is the reusable-workflow pattern the README
+    documents and `examples/policy-reusable-workflow.json` ships, so warning about it contradicted
+    this tool's own advice. Excluded explicitly rather than by accident of the `repository` key.
+
+  The wording was also wrong in the opposite direction for a subject with no owner at all
+  (`environment:production:ref:refs/heads/main`): "every repository in the organization" is
+  *narrower* than the truth, since the github.com issuer is shared and nothing in that subject
+  scopes the condition to the reader's own org. It now says so.
+- **The percent-encoded-colon note landed on subjects that are not GitHub's.** `%3A` is not a
+  GitHub invention, and the note fires before anything has established the subject is a GitHub one.
+  With no `iss` claim to screen on - the hand-written `--claims` case - a GitLab-shaped
+  `project_path:acme/api:environment:prod%3Aeu` collected a lecture about `include_claim_keys`
+  encoding rules that do not apply to it. The note now also requires the subject to have decoded as
+  a GitHub subject (a `format`, or a recognised customization).
+
+### Changed
+- Pinned corpus bumped `subvectors==0.5.2` -> `0.6.0`, **with a re-derivation**. Measured across the
+  span rather than assumed: no `issuer: github` subject was removed or changed, and three were
+  added by the `%3A` tranche. Two of them earn a fixture entry and one does not:
+  - `repo:octo-org/octo-repo:environment:Production-sandbox` - a new **value** of the
+    `environment:` form already covered. Everything interesting about it lives in the IAM condition
+    (`environment:Production*`, which IAM's non-delimiter-aware `*` widens to a name prefix), and
+    the fixture holds subjects, not conditions. No entry, on the same reasoning that left
+    `environment:Sandbox` out at the 0.5.2 pin.
+  - `repo:octo-org/octo-repo:environment:Production%3AV1` - the grammar is not new, but this is the
+    only vendored subject whose decoded value differs from its raw text, so it is the sole fixture
+    guard on the percent-decoding. Included deliberately, and the fixture now carries a
+    `_selection` note saying why, so a later reader does not mistake it for a stray duplicate.
+  - `environment:production%3Aeastus:repository_owner:octo-org` - a new **form**, unambiguously:
+    the first vendored subject that neither starts with `repo:` nor is jwr-only. It pins
+    `repository` and `format` as **absent**, the way 0.5.0's entry pinned `context` absent, because
+    the omission is the whole point of it upstream.
+
+  Also vendored, and overdue: `job_workflow_ref:octo-org/octo-automation/.github/workflows/oidc.yml@refs/heads/main`.
+  It has been in the corpus since subvectors 0.2.0 and takes a completely different decoder branch
+  from the combined form the fixture already carried, so the fixture read as though it pinned the
+  `job_workflow_ref` grammar while pinning only half of it. The 0.5.0 re-derivation missed it.
+
+  Fixture 10 -> 13 subjects, upstream 23 -> 26. All three drift directions green against the new
+  pin via both paths (`--installed` and a checkout). 135 -> 156 tests.
 
 ### Added
 - **Guards for the copy-paste material.** Two pieces of the repo are meant to be copied into a

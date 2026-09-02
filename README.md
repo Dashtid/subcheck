@@ -260,7 +260,7 @@ permissions:
 steps:
   - uses: actions/checkout@v7
   - name: Verify the OIDC token is scoped as expected
-    uses: Dashtid/subcheck@v0.4.0        # or @main
+    uses: Dashtid/subcheck@v0.5.0        # or @main
     with:
       policy: .github/oidc-policy.yaml
       audience: sts.amazonaws.com        # default

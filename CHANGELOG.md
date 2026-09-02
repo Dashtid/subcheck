@@ -6,6 +6,22 @@ All notable changes are documented here. Format based on
 
 ## [Unreleased]
 
+### Added
+- **Guards for the copy-paste material.** Two pieces of the repo are meant to be copied into a
+  user's workflow, and neither was tied to anything that would notice it rotting:
+  - The README's `uses: Dashtid/subcheck@vX.Y.Z` pin sat at `v0.4.0` across three releases -
+    including both fail-open fixes - because nothing checked it. `tests/test_docs_pins.py` now
+    asserts it equals `subcheck.__version__`.
+  - Half of `examples/` had no test: the immutable pair (0.2.0) and the reusable-workflow pair
+    (0.4.0) were never loaded by anything, so 0.4.1's stricter policy validation could have broken
+    a shipped example silently. `tests/test_examples.py` loads **every** policy example and runs
+    **every** claims example, discovered from the directory rather than listed, so a new example is
+    covered the moment the file lands. It asserts its own globs are non-empty first - a
+    parametrized test over an empty glob passes vacuously, which is the same shape of fail-open
+    this project keeps turning up elsewhere.
+
+  Tests only; no behaviour change. 122 -> 135 tests, coverage still 100%.
+
 ## [0.5.0] - 2026-09-02
 
 ### Added

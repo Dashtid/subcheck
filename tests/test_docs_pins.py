@@ -1,20 +1,33 @@
-"""The README's advertised action pin must not lag the released version.
+"""The README must keep telling the truth about the tool it documents.
 
-The quickstart's `uses: Dashtid/subcheck@vX.Y.Z` is copy-paste material, so a
-stale pin silently hands users an older tool. It sat at `v0.4.0` through three
-releases - including the two that fixed policies and claims files passing tokens
-they were written to reject - because nothing tied it to the version.
+Two of its claims are copy-paste material, and neither was tied to anything that
+would notice it rotting:
+
+* the `uses: Dashtid/subcheck@vX.Y.Z` pin, which sat at `v0.4.0` across three
+  releases - including both fail-open fixes - because nothing checked it;
+* the quickstart transcript, the first thing a reader sees, which had already
+  been wrong once and was corrected by hand with nothing added to stop it
+  happening again. Every advisory this project adds is another chance for it to
+  drift, since a new note appears in that block without anyone editing it.
 """
 
+import io
 import re
 from pathlib import Path
 
+import pytest
+
 import subcheck
+from subcheck.cli import main
 
-README = Path(__file__).resolve().parent.parent / "README.md"
+ROOT = Path(__file__).resolve().parent.parent
+README = ROOT / "README.md"
 
-# `uses: Dashtid/subcheck@v1.2.3`, however much whitespace or trailing comment.
+# `uses: Dashtid/subcheck@v1.2.3`, whatever the whitespace or trailing comment.
 _PIN = re.compile(r"uses:\s*Dashtid/subcheck@v(\d+\.\d+\.\d+)")
+
+# The quickstart transcript: a ```text block opening with `$ subcheck <args>`.
+_TRANSCRIPT = re.compile(r"```text\n\$ subcheck ([^\n]*)\n(.*?)```", re.S)
 
 
 def test_readme_advertises_the_current_version():
@@ -25,3 +38,22 @@ def test_readme_advertises_the_current_version():
         f"README pins subcheck@v{', v'.join(stale)} but this tree is "
         f"{subcheck.__version__}; bump the README with the version."
     )
+
+
+def test_readme_quickstart_transcript_is_real_output():
+    match = _TRANSCRIPT.search(README.read_text(encoding="utf-8"))
+    assert match, "no `$ subcheck ...` transcript found - did the quickstart change shape?"
+    argv, documented = match.group(1).split(), match.group(2)
+
+    buf = io.StringIO()
+    with pytest.MonkeyPatch.context() as mp:
+        mp.chdir(ROOT)  # the transcript uses paths relative to the repo root
+        mp.setattr("sys.stdout", buf)
+        rc = main(argv)
+
+    # The documented run ends in a finding; showing a failing gate is the point of it.
+    assert rc == 1, f"the quickstart is documented as FAIL but exited {rc}"
+
+    expected = [line.rstrip() for line in documented.strip("\n").splitlines()]
+    got = [line.rstrip() for line in buf.getvalue().strip("\n").splitlines()]
+    assert got == expected, "README quickstart no longer matches real output"

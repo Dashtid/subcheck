@@ -65,6 +65,53 @@ _JWR_KEY = "job_workflow_ref"
 _JWR_PREFIX = f"{_JWR_KEY}:"
 _JWR_SEP = f":{_JWR_KEY}:"
 
+# GitHub OIDC claim keys that may appear in a customized subject. include_claim_keys
+# can only name claims GitHub actually mints, so requiring EVERY key of a candidate
+# subject to be in this set is what stops another issuer's colon-delimited subject
+# (GitLab's 'project_path:group/proj:ref_type:branch:ref:main', say) from being read
+# as a customized GitHub one. 'repo' is the customization spelling of the repository
+# key, from GitHub's own include_claim_keys: ["repo"] example.
+_GITHUB_CLAIM_KEYS = frozenset(
+    {
+        "actor", "actor_id", "base_ref", "enterprise", "enterprise_id", "environment",
+        "event_name", "head_ref", "job_workflow_ref", "job_workflow_sha", "ref",
+        "ref_protected", "ref_type", "repo", "repository", "repository_id",
+        "repository_owner", "repository_owner_id", "repository_visibility", "run_attempt",
+        "run_id", "run_number", "runner_environment", "sha", "workflow", "workflow_ref",
+        "workflow_sha",
+    }
+)
+
+# "Any `:` within the metadata values will be replaced with %3A in the subject claim."
+# - GitHub Actions OIDC reference. That encoding is the only reason a colon-delimited
+# subject stays unambiguous, so a value's colon is ALWAYS encoded and every literal
+# colon in the subject is structural.
+_ENCODED_COLON = "%3A"
+
+
+def _decode_value(value: str) -> str:
+    """Undo GitHub's percent-encoding of a colon inside a subject metadata value."""
+    return value.replace(_ENCODED_COLON, ":").replace(_ENCODED_COLON.lower(), ":")
+
+
+def _parse_customized_pairs(sub: str) -> dict | None:
+    """Decode a wholly customized subject: ``key:value:key:value``.
+
+    Returns ``None`` unless the subject splits evenly into pairs whose keys are ALL
+    GitHub claim keys - the check that keeps another issuer's subject out. Values are
+    percent-decoded, so the caller sees the environment name a human would recognise
+    rather than the wire form.
+    """
+    parts = sub.split(":")
+    if len(parts) < 2 or len(parts) % 2:
+        return None
+    keys, values = parts[0::2], parts[1::2]
+    if not all(key in _GITHUB_CLAIM_KEYS for key in keys):
+        return None
+    if len(set(keys)) != len(keys):
+        return None  # a repeated key is not a shape GitHub mints
+    return {key: _decode_value(value) for key, value in zip(keys, values, strict=True)}
+
 
 def _parse_job_workflow_ref(value: str) -> dict:
     """Decompose a ``job_workflow_ref`` value: ``OWNER/REPO/PATH@REF``.
@@ -115,6 +162,8 @@ def parse_github_sub(sub: str) -> dict:
         job_workflow_ref:acme/auto/.github/workflows/w.yml@refs/heads/main
     """
     out: dict = {"raw": sub}
+    if _ENCODED_COLON in sub or _ENCODED_COLON.lower() in sub:
+        out["percent_encoded"] = True
 
     if sub.startswith(_JWR_PREFIX):
         # jwr-only customization: the sub no longer starts with 'repo:', so it
@@ -127,6 +176,17 @@ def parse_github_sub(sub: str) -> dict:
 
     m = _SUB_RE.match(head)
     if m is None:
+        # Not the default grammar. A subject may still be a wholly customized one
+        # that omits 'repo' altogether - GitHub's own documented example is
+        # 'environment:production%3Aeastus:repository_owner:octo-org'. Decoding it
+        # matters because such a subject can name an owner and an environment while
+        # never naming the repository.
+        pairs = _parse_customized_pairs(sub)
+        if pairs is not None:
+            out["customized"] = True
+            out.update(pairs)
+            if "repo" in pairs:
+                out["repository"] = pairs["repo"]
         return out
     owner, repo = m.group("owner"), m.group("repo")
     owner_id, repo_id = m.group("owner_id"), m.group("repo_id")
@@ -147,7 +207,7 @@ def parse_github_sub(sub: str) -> dict:
         kind, _, value = context.partition(":")
         out["context"] = kind
         if value:
-            out[kind] = value
+            out[kind] = _decode_value(value)
     if jwr_sep:
         out["customized"] = True
         out.update(_parse_job_workflow_ref(jwr_value))

@@ -7,6 +7,33 @@ All notable changes are documented here. Format based on
 ## [Unreleased]
 
 ### Added
+- **A wholly customized `sub` now decodes**, not just the `job_workflow_ref` shapes.
+  `include_claim_keys` can replace the subject grammar entirely, so a subject need not begin with
+  `repo:` at all - GitHub's own reference prints one as a condition value to copy:
+  `environment:production%3Aeastus:repository_owner:octo-org`. subcheck read that as raw text and
+  said nothing about it. It now decodes into its claim keys, with two guards against reading some
+  other issuer's subject the same way: every key must be a GitHub claim key (which is what keeps
+  GitLab's `project_path:group/proj:ref_type:branch:ref:main` out, since it splits into pairs just
+  as neatly), and a repeated key or an odd segment count is rejected.
+- **The percent-encoded colon is decoded and explained.** GitHub replaces any `:` inside a metadata
+  value with `%3A`, which is the only reason a colon-delimited subject stays unambiguous. Values now
+  come back decoded, so an environment named `Production:V1` reads as itself rather than as
+  `Production%3AV1`, and a new note names the failure mode: a trust condition has to pin the
+  **encoded** form, because pinning the name as it appears in the GitHub UI matches nothing and
+  fails **closed** - a broken deployment with no hint that the encoding is the cause.
+- **A customized `sub` that names no repository is reported as org-wide.** The documented example
+  above names an owner and an environment and never names the repository, so an exact, wildcard-free
+  condition on it is satisfied by every repository in the organization - including ones created
+  after the condition was written. This is the mirror of 0.5.0's repo-only advisory: one subject
+  omits everything below the repository, the other omits the repository itself, and neither carries
+  a `*` for a reviewer to catch.
+
+### Fixed
+- **The customized-`sub` note blamed `job_workflow_ref` even when that was not the customization.**
+  It was written when the only customized shapes subcheck decoded were the two `job_workflow_ref`
+  ones, and it asserted that cause unconditionally. It now names what actually happened.
+
+### Added
 - **Guards for the copy-paste material.** Two pieces of the repo are meant to be copied into a
   user's workflow, and neither was tied to anything that would notice it rotting:
   - The README's `uses: Dashtid/subcheck@vX.Y.Z` pin sat at `v0.4.0` across three releases -
@@ -38,7 +65,7 @@ All notable changes are documented here. Format based on
   `gh-aws-repo-only-customized-sub-admits-everything`, which arrived with the 0.5.2 pin below.
 
 ### Changed
-- Pinned corpus bumped `subvectors==0.3.0` -> `0.5.2`, **and this one did carry a re-derivation**,
+- Pinned corpus bumped `subvectors==0.3.0` -> `0.6.0`, **and this one did carry a re-derivation**,
   unlike the two bumps before it. Measured rather than assumed - comparing every `issuer: github`
   subject string across the span shows **none removed and none changed**, and two added:
   - `repo:octo-org/octo-repo:environment:Sandbox` (0.5.0) is a new *value* of the `environment:`
@@ -59,7 +86,12 @@ All notable changes are documented here. Format based on
   `sub` condition's value list. 0.5.0 adds the `ForAllValues:`/`ForAnyValue:` set-operator tranche
   and a `condition.qualifier` schema property. 0.5.1 corrected and commit-pinned the corpus's
   Checkov citations - worth having under the pin, because the upstream PR this project's findings
-  fed into invites a maintainer to follow those links.
+  fed into invites a maintainer to follow those links. 0.6.0 added the `%3A` tranche, which is what
+  forced the customized-subject decoding above: its
+  `environment:production%3Aeastus:repository_owner:octo-org` vector was the first upstream subject
+  the decoder could not read at all. The drift check's COVERAGE direction caught it on the first CI
+  run after the pin moved - the mechanism working as designed, a bump that lands a new grammar
+  reddening immediately rather than quietly.
 
 ## [0.4.2] - 2026-09-01
 

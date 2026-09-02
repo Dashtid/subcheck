@@ -120,16 +120,46 @@ def _advisories(claims: dict, results: list[Result]) -> list[str]:
         return []
     parsed = parse_github_sub(sub)
     notes: list[str] = []
+    if parsed.get("percent_encoded"):
+        # "Any ':' within the metadata values will be replaced with %3A in the subject
+        # claim." A colon in an environment name is the case that bites: the name reads
+        # as 'Production:V1' everywhere in the GitHub UI, so that is what gets pinned,
+        # and the condition then has one more colon than the subject does. It fails
+        # CLOSED, which is why it surfaces as a broken deployment with no hint of cause.
+        notes.append(
+            "sub contains a percent-encoded colon (%3A): GitHub replaces any ':' inside "
+            "a metadata value, so the subject on the wire differs from the value as it "
+            "reads in the UI. A cloud trust condition must pin the ENCODED form - pinning "
+            "the literal colon matches nothing and fails closed, looking like a broken "
+            "pipeline rather than a policy mistake."
+        )
     if parsed.get("customized"):
         # A customized sub is not a variant of the default format - it REPLACES
         # it. Conditions written for 'repo:ORG/REPO:...' stop matching, and a
         # repo-wide wildcard stops matching too, so this fails closed and looks
         # like a broken deployment rather than a claims change.
-        notes.append(
-            "sub uses a CUSTOMIZED format (job_workflow_ref is included via "
-            "include_claim_keys); trust conditions written for the default "
-            "'repo:ORG/REPO:...' format no longer match this token, wildcards included."
+        via = (
+            "job_workflow_ref is included via include_claim_keys"
+            if parsed.get("job_workflow_ref")
+            else "the claim keys are chosen via include_claim_keys"
         )
+        notes.append(
+            f"sub uses a CUSTOMIZED format ({via}); trust conditions written for the "
+            "default 'repo:ORG/REPO:...' format no longer match this token, wildcards "
+            "included."
+        )
+        if not parsed.get("repository"):
+            # GitHub's own documented example is of exactly this shape:
+            # 'environment:production%3Aeastus:repository_owner:octo-org'. It names an
+            # owner and an environment and never names the repository, so an exact,
+            # wildcard-free condition on it admits every repo in the org - including
+            # ones created after the policy was written.
+            notes.append(
+                "the customized sub does not name a repository at all, so a condition "
+                "matching it is satisfied by every repository in the organization that "
+                "presents the same claims - including repositories created after the "
+                "condition was written. Add 'repo' to include_claim_keys to bound it."
+            )
     elif parsed.get("repository") and "context" not in parsed:
         # 'repo:ORG/REPO' with nothing after it. The default subject always carries a
         # ref, environment or event segment, so this shape comes from subject

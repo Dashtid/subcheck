@@ -169,6 +169,20 @@ Open follow-ups from the same pass:
   **The generalisable move:** when a fix hardens one input, check the others *for the same defect*
   before closing it out. Symmetry between inputs is cheap to check and, here, was the whole finding.
 
+- `[x]` **Customized subjects that do not start with `repo:` - DONE 2026-09-02.** Found by the pin
+  bump to subvectors 0.6.0: the corpus's `%3A` tranche carries GitHub's own documented condition
+  value, `environment:production%3Aeastus:repository_owner:octo-org`, and `parse_github_sub`
+  returned raw text for it. `include_claim_keys` REPLACES the subject grammar, so a subject need
+  not begin with `repo:` at all - subcheck had only ever handled the two `job_workflow_ref` shapes.
+  Now decoded, with the percent-encoded colon undone (GitHub encodes any `:` inside a metadata
+  value, which is the only thing keeping a colon-delimited subject unambiguous). Two advisories
+  came with it: the encoding trap, where pinning the environment name as the UI shows it fails
+  **closed** and reads as a broken pipeline; and a customized subject that names no repository,
+  which is org-wide and wildcard-free.
+  **Non-goals check, so a later session does not re-litigate it:** this is subject *decoding*, the
+  tool's core job, not trust-condition simulation. The advisories describe what the token's subject
+  omits; they do not evaluate a condition against it.
+
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

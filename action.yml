@@ -1,9 +1,12 @@
-name: "subcheck"
+# Marketplace display name - NOT "subcheck": the validator rejects names that
+# match any existing action, user, or org, and plain "subcheck" is taken there.
+# The CLI, package, and repo keep the lowercase subcheck brand; only this
+# listing name differs. Description must stay under 125 chars (hard validator
+# limit) - the long version of this pitch lives in README.md.
+name: "Subcheck OIDC Gate"
 description: >-
-  Decode the GitHub Actions OIDC token this job would present to a cloud and
-  assert its claims against an expected-claims policy. Fails the step the moment
-  a claim drifts from what you declared - before role assumption, with a
-  readable per-claim diff instead of a cryptic cloud-side AccessDenied.
+  Assert the job's OIDC token claims against a declared policy - fails with a
+  per-claim diff before any role is assumed.
 author: "David Dashti"
 branding:
   icon: "shield"

@@ -13,7 +13,7 @@ non-zero and your CI step fails.
 A GitHub Actions job that needs AWS credentials gets a short-lived token. Inside it is a claim
 called `sub` — a single line of text:
 
-```
+```text
 repo:acme/payments-api:ref:refs/heads/main
 ```
 
@@ -31,7 +31,7 @@ changed shape (see the immutable-claims migration in the README).
 
 ## The flow, end to end
 
-```
+```text
   --token <jwt>            --policy policy.yaml
         |                          |
         v                          v

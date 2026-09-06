@@ -23,9 +23,7 @@ def decode_claims(token: str) -> dict:
     """Decode the claims (payload) of a JWT without verifying its signature."""
     parts = token.strip().split(".")
     if len(parts) != 3:
-        raise ValueError(
-            f"not a JWT: expected 3 dot-separated segments, got {len(parts)}"
-        )
+        raise ValueError(f"not a JWT: expected 3 dot-separated segments, got {len(parts)}")
     try:
         payload = _b64url_decode(parts[1])
     except (ValueError, binascii.Error) as exc:
@@ -73,11 +71,32 @@ _JWR_SEP = f":{_JWR_KEY}:"
 # key, from GitHub's own include_claim_keys: ["repo"] example.
 _GITHUB_CLAIM_KEYS = frozenset(
     {
-        "actor", "actor_id", "base_ref", "enterprise", "enterprise_id", "environment",
-        "event_name", "head_ref", "job_workflow_ref", "job_workflow_sha", "ref",
-        "ref_protected", "ref_type", "repo", "repository", "repository_id",
-        "repository_owner", "repository_owner_id", "repository_visibility", "run_attempt",
-        "run_id", "run_number", "runner_environment", "sha", "workflow", "workflow_ref",
+        "actor",
+        "actor_id",
+        "base_ref",
+        "enterprise",
+        "enterprise_id",
+        "environment",
+        "event_name",
+        "head_ref",
+        "job_workflow_ref",
+        "job_workflow_sha",
+        "ref",
+        "ref_protected",
+        "ref_type",
+        "repo",
+        "repository",
+        "repository_id",
+        "repository_owner",
+        "repository_owner_id",
+        "repository_visibility",
+        "run_attempt",
+        "run_id",
+        "run_number",
+        "runner_environment",
+        "sha",
+        "workflow",
+        "workflow_ref",
         "workflow_sha",
     }
 )

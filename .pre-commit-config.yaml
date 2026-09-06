@@ -1,0 +1,135 @@
+# Shared estate pre-commit core.
+#
+# Every hook below is pinned to the highest revision ALREADY in use somewhere in
+# this estate, not the newest published one, so each is known to resolve on this
+# machine. Move them with `pre-commit autoupdate`, never by hand.
+#
+# That rule is only as good as the survey behind it: gitleaks was pinned at
+# v8.30.0 until private-toolkit and sysadmin-toolkit were folded in on
+# 2026-09-04 and turned out to be running v8.30.1. Widening the survey is part
+# of adding a repository, not an afterthought.
+#
+# Install once per clone:
+#     pre-commit install --install-hooks
+#
+# There is deliberately no `mixed-line-ending` hook. .gitattributes owns line
+# endings now, and its rule that *.ps1 stays CRLF is one that `--fix=lf` would
+# fight on every commit.
+
+# Paths NO hook may read or rewrite.
+#
+# Some files are records, not source, and rewriting one destroys what it records.
+# Both halves of this pattern were written after damage, not before it:
+#
+#   * a test fixture's exact bytes ARE the test. end-of-file-fixer touched
+#     sbom-curator's tests/fixtures/catalogue/INDEX.md, which is hashed into
+#     MANIFEST.sha256, and two sealed-evidence tests then failed with
+#     "stale: INDEX.md" - the same failure a real tamper would produce;
+#   * in a unified diff a context line MUST begin with a space, so
+#     trailing-whitespace stripping that space is corruption. It rewrote 65 lines
+#     across two archived patches in oss-contributions. A .sarif is a scan result,
+#     which is evidence for the same reason.
+exclude: '(^|/)(tests?/fixtures|testdata|__snapshots__)/|\.(patch|diff|sarif)$'
+
+# pre-push is in the list because three repositories declare hooks at that
+# stage (mypy, pytest, pip-audit) - and an install that omits the stage means
+# those hooks exist only as YAML. That was the case until 2026-09-04.
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+minimum_pre_commit_version: "3.0.0"
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]   # two trailing spaces are a hard break
+        # .editorconfig already rules that TSV trailing whitespace is data
+        # (empty trailing cells); the gate has to agree with the editor.
+        exclude: \.tsv$
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-case-conflict               # two files differing only in case break a Windows clone
+      - id: check-illegal-windows-names
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-toml
+      - id: detect-private-key
+
+  # detect-private-key above reads CONTENT, so a binary key store - .p12, .pfx,
+  # .jks - sails straight past it. The filename catches what content inspection
+  # cannot. Public halves (.pub) are deliberately not matched: this estate
+  # commits those on purpose.
+  - repo: local
+    hooks:
+      - id: forbid-key-material
+        name: forbid key/cert material by filename
+        entry: 'key or certificate material must never be committed (matched on FILENAME)'
+        language: fail
+        files: '((^|/)id_(rsa|dsa|ecdsa|ed25519)|\.(pem|key|p12|pfx|jks|keystore))$'
+
+  # This estate has leaked a Grafana service-account token into git history and
+  # two Brave API keys into a working tree. This is the hook that stops the next
+  # one, and it is the reason the core is worth having in a notes repository.
+  #
+  # [i] The top-level exclude does NOT apply here: the hook ignores the
+  # filenames pre-commit passes and scans the staged content itself. That is
+  # the right behaviour - a real secret in a fixture is still a real secret -
+  # and a deliberately planted canary is allowlisted in the repo's own
+  # .gitleaks.toml, the way private-toolkit already does it.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.49.1
+    hooks:
+      # Rules live in .markdownlint.jsonc. No --fix: a linter that silently
+      # rewrites prose is how "URL* / Why" became "URL*/ Why".
+      - id: markdownlint
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [--strict]
+
+  # --- Python ---------------------------------------------------------------
+  # Line length and rule selection belong to each repository's own [tool.ruff]
+  # block, which is where Python tooling config lives; passing them here would
+  # silently override a repository that meant something different.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.6
+    hooks:
+      - id: ruff-check
+        args: [--fix, --exit-non-zero-on-fix]
+      # types_or is pinned back to the pre-0.16 set on purpose. ruff-pre-commit
+      # v0.16 added `markdown`, so ruff format silently began rewriting the
+      # ```python fences inside every .md file -- collapsing hand-aligned
+      # comment columns in documentation examples that were shaped that way
+      # deliberately. Prose is markdownlint's job; this hook formats code.
+      # Drop the override only as a deliberate decision, not by accident.
+      - id: ruff-format
+        types_or: [python, pyi, jupyter]
+
+  # --- GitHub Actions -------------------------------------------------------
+  # check-yaml validates syntax only; this catches expression typos, bad needs:
+  # references and shell errors inside run: blocks.
+  - repo: https://github.com/rhysd/actionlint
+    # v1.7.8+ dropped ubuntu-20.04/windows-2019 as valid labels and remapped
+    # the -latest aliases; nothing here used the dropped ones.
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+
+  # ---------------------------------------------------------------------------
+  # REPO-SPECIFIC HOOKS BELOW THIS LINE
+  # EVERYTHING in this file is generated - the block below the marker comes
+  # from estate/standards/repo/<this repo>.yaml, and a hand edit HERE is
+  # overwritten on the next rollout. Edit it THERE, then re-run
+  #     python standards/rollout.py --apply
+  # ---------------------------------------------------------------------------

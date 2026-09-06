@@ -14,9 +14,12 @@ def test_inspect_only_prints_claims(examples_dir, capsys):
 def test_policy_pass_json(examples_dir):
     rc = main(
         [
-            "--claims", str(examples_dir / "claims-main.json"),
-            "--policy", str(examples_dir / "policy.json"),
-            "--format", "json",
+            "--claims",
+            str(examples_dir / "claims-main.json"),
+            "--policy",
+            str(examples_dir / "policy.json"),
+            "--format",
+            "json",
         ]
     )
     assert rc == 0
@@ -25,8 +28,10 @@ def test_policy_pass_json(examples_dir):
 def test_policy_fail_pull_request(examples_dir, capsys):
     rc = main(
         [
-            "--claims", str(examples_dir / "claims-pull-request.json"),
-            "--policy", str(examples_dir / "policy.json"),
+            "--claims",
+            str(examples_dir / "claims-pull-request.json"),
+            "--policy",
+            str(examples_dir / "policy.json"),
         ]
     )
     assert rc == 1
@@ -37,8 +42,10 @@ def test_policy_yaml_when_available(examples_dir):
     pytest.importorskip("yaml")
     rc = main(
         [
-            "--claims", str(examples_dir / "claims-main.json"),
-            "--policy", str(examples_dir / "policy.yaml"),
+            "--claims",
+            str(examples_dir / "claims-main.json"),
+            "--policy",
+            str(examples_dir / "policy.yaml"),
         ]
     )
     assert rc == 0

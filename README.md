@@ -95,7 +95,7 @@ Inputs (choose one): `--token <jwt>` (`-` for stdin), `--token-file <path>`, or
 
 > Prefer `--token -` (stdin) or `--token-file` over passing the JWT as an argument — a token on the
 > command line leaks into the process list and shell history.
-
+>
 > **Scope (and honesty):** this **decodes** the token payload for inspection — it does **not
 > verify the signature**. Verifying the signature and issuer against GitHub's JWKS is the cloud
 > provider's job at role-assumption time. Use this to catch misconfigured *expectations* early,

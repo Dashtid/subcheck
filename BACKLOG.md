@@ -15,8 +15,8 @@ provider's job at assume-time. Keep that line sharp (see Non-goals).
 was to keep subcheck parked until a subvectors v0.1 + article #1 launch burst. **That gate is gone
 — retired 2026-08-29.** Every leg of it dissolved on its own: the pin fired ahead of schedule
 (public slot #2, 2026-08-16), both packages shipped to PyPI regardless (subcheck v0.2.0 and
-subvectors v0.2.0, both 2026-08-24), and the article programme was **closed 2026-08-29** — article
-#1 was never drafted and now never will be. Nothing in this repo is gated on anything: ship a slice
+subvectors v0.2.0, both 2026-08-24), and the article programme was **closed
+2026-08-29** — article #1 was never drafted and now never will be. Nothing in this repo is gated on anything: ship a slice
 when it is ready. Phase 4 below is the shipping history, not a gate.
 
 Status keys: `[ ]` todo · `[~]` in progress · `[x]` done this cycle.

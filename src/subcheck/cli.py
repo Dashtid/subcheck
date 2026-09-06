@@ -42,9 +42,7 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Decode GitHub Actions OIDC token claims and validate them "
         "against an expected-claims policy.",
     )
-    parser.add_argument(
-        "--version", action="version", version=f"%(prog)s {__version__}"
-    )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     src = parser.add_argument_group("claims input (choose one)")
     src.add_argument("--token", help="the OIDC JWT ('-' reads from stdin)")
     src.add_argument("--token-file", help="path to a file containing the OIDC JWT")
@@ -53,7 +51,9 @@ def _build_parser() -> argparse.ArgumentParser:
         "--policy", help="path to a policy file (.yaml/.yml/.json); omit to only decode"
     )
     parser.add_argument(
-        "--format", choices=["text", "json"], default="text",
+        "--format",
+        choices=["text", "json"],
+        default="text",
         help="output format (default: text)",
     )
     return parser

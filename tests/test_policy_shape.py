@@ -15,6 +15,7 @@ from subcheck.validator import FAIL, PASS
 
 # --- claim rules written at the top level instead of under 'claims' ----------
 
+
 def test_unknown_top_level_keys_are_rejected():
     # Was: silently ignored, so the policy checked only 'issuer' and passed a
     # token from an entirely different repository.
@@ -40,6 +41,7 @@ def test_the_documented_top_level_keys_are_still_accepted():
 
 
 # --- rule value shapes -------------------------------------------------------
+
 
 def test_in_must_be_a_list_not_a_string():
     # Was: `value not in "production"` - substring containment, so 'prod' and
@@ -79,6 +81,7 @@ def test_equals_still_accepts_any_json_scalar():
 
 # --- file-level parse failures ----------------------------------------------
 
+
 def test_unparseable_yaml_policy_raises_valueerror(tmp_path):
     # yaml.YAMLError is not a ValueError (json.JSONDecodeError is), so this
     # escaped the CLI's rc=2 handler and exited 1.
@@ -106,6 +109,7 @@ def test_every_shipped_example_policy_still_loads():
 
 # --- describe() reports every constraint ------------------------------------
 
+
 def test_describe_reports_all_constraints_not_just_the_first():
     # Was: only the first constraint was named, so a claim failing on the
     # regex was reported against the glob it actually satisfied.
@@ -123,6 +127,7 @@ def test_json_policy_round_trips(tmp_path):
 
 
 # --- the glob matcher, previously untested anywhere ---------------------------
+
 
 @pytest.mark.parametrize(
     ("pattern", "value", "expected"),
@@ -143,6 +148,7 @@ def test_glob_matching(pattern, value, expected):
 
 # --- the equals FAIL path, previously never exercised -------------------------
 
+
 def test_equals_mismatch_fails():
     # `equals` is the most common rule type and no test had ever made one FAIL:
     # every existing failure case went through `matches` or an absent claim.
@@ -161,6 +167,7 @@ def test_equals_shorthand_string_form_fails_too():
 
 
 # --- the remaining rejection paths -------------------------------------------
+
 
 @pytest.mark.parametrize(
     ("data", "expected"),

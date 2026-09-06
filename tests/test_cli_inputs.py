@@ -73,8 +73,16 @@ def test_policy_file_with_unknown_suffix_is_read_as_json(tmp_path, make_jwt, mon
 
 
 def test_json_format_report_shape(examples_dir, capsys):
-    rc = main(["--claims", str(examples_dir / "claims-pull-request.json"),
-               "--policy", str(examples_dir / "policy.json"), "--format", "json"])
+    rc = main(
+        [
+            "--claims",
+            str(examples_dir / "claims-pull-request.json"),
+            "--policy",
+            str(examples_dir / "policy.json"),
+            "--format",
+            "json",
+        ]
+    )
     assert rc == 1
     report = json.loads(capsys.readouterr().out)
     assert report["passed"] is False
@@ -93,8 +101,9 @@ def test_python_dash_m_entry_point():
 
     src = Path(__file__).resolve().parent.parent / "src"
     env = {**os.environ, "PYTHONPATH": str(src)}
-    r = subprocess.run([sys.executable, "-m", "subcheck", "--version"],
-                       capture_output=True, text=True, env=env)
+    r = subprocess.run(
+        [sys.executable, "-m", "subcheck", "--version"], capture_output=True, text=True, env=env
+    )
     assert r.returncode == 0, r.stderr
     assert "subcheck" in r.stdout
 
@@ -107,7 +116,8 @@ def test_python_dash_m_subcheck_cli_entry_point():
 
     src = Path(__file__).resolve().parent.parent / "src"
     env = {**os.environ, "PYTHONPATH": str(src)}
-    r = subprocess.run([sys.executable, "-m", "subcheck.cli", "--version"],
-                       capture_output=True, text=True, env=env)
+    r = subprocess.run(
+        [sys.executable, "-m", "subcheck.cli", "--version"], capture_output=True, text=True, env=env
+    )
     assert r.returncode == 0, r.stderr
     assert "subcheck" in r.stdout

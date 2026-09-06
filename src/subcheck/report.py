@@ -253,9 +253,7 @@ def to_text(report: dict) -> str:
     width = max((len(r["claim"]) for r in report["results"]), default=5)
     for r in report["results"]:
         icon = _ICON.get(r["status"], "[?]")
-        lines.append(
-            f"  {icon} {r['claim']:<{width}}  {r['severity']:<6}  {r['message']}"
-        )
+        lines.append(f"  {icon} {r['claim']:<{width}}  {r['severity']:<6}  {r['message']}")
     notes = report.get("notes") or []
     if notes:
         lines.append("")

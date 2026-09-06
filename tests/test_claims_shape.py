@@ -35,6 +35,7 @@ OPTIONAL_POLICY = {
 
 # --- the library API ---------------------------------------------------------
 
+
 @pytest.mark.parametrize("claims", NOT_OBJECTS + [()])
 def test_validate_rejects_claims_that_are_not_a_mapping(claims):
     # Was: [] and (1,2,3) returned one PASS per rule, so an all-optional policy
@@ -58,6 +59,7 @@ def test_an_empty_claims_object_is_still_accepted():
 
 
 # --- through the CLI ---------------------------------------------------------
+
 
 def _claims_file(tmp_path, value):
     f = tmp_path / "claims.json"

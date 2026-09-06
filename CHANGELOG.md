@@ -7,6 +7,7 @@ All notable changes are documented here. Format based on
 ## [Unreleased]
 
 ### Added
+
 - **A wholly customized `sub` now decodes**, not just the `job_workflow_ref` shapes.
   `include_claim_keys` can replace the subject grammar entirely, so a subject need not begin with
   `repo:` at all - GitHub's own reference prints one as a condition value to copy:
@@ -28,7 +29,23 @@ All notable changes are documented here. Format based on
   omits everything below the repository, the other omits the repository itself, and neither carries
   a `*` for a reviewer to catch.
 
+- **Guards for the copy-paste material.** Two pieces of the repo are meant to be copied into a
+  user's workflow, and neither was tied to anything that would notice it rotting:
+  - The README's `uses: Dashtid/subcheck@vX.Y.Z` pin sat at `v0.4.0` across three releases -
+    including both fail-open fixes - because nothing checked it. `tests/test_docs_pins.py` now
+    asserts it equals `subcheck.__version__`.
+  - Half of `examples/` had no test: the immutable pair (0.2.0) and the reusable-workflow pair
+    (0.4.0) were never loaded by anything, so 0.4.1's stricter policy validation could have broken
+    a shipped example silently. `tests/test_examples.py` loads **every** policy example and runs
+    **every** claims example, discovered from the directory rather than listed, so a new example is
+    covered the moment the file lands. It asserts its own globs are non-empty first - a
+    parametrized test over an empty glob passes vacuously, which is the same shape of fail-open
+    this project keeps turning up elsewhere.
+
+  Tests only; no behaviour change. 122 -> 135 tests, coverage still 100%.
+
 ### Fixed
+
 - **The customized-`sub` note blamed `job_workflow_ref` even when that was not the customization.**
   It was written when the only customized shapes subcheck decoded were the two `job_workflow_ref`
   ones, and it asserted that cause unconditionally. It now names what actually happened.
@@ -60,6 +77,7 @@ All notable changes are documented here. Format based on
   a GitHub subject (a `format`, or a recognised customization).
 
 ### Changed
+
 - Pinned corpus bumped `subvectors==0.5.2` -> `0.6.0`, **with a re-derivation**. Measured across the
   span rather than assumed: no `issuer: github` subject was removed or changed, and three were
   added by the `%3A` tranche. Two of them earn a fixture entry and one does not:
@@ -85,25 +103,10 @@ All notable changes are documented here. Format based on
   Fixture 10 -> 13 subjects, upstream 23 -> 26. All three drift directions green against the new
   pin via both paths (`--installed` and a checkout). 135 -> 156 tests.
 
-### Added
-- **Guards for the copy-paste material.** Two pieces of the repo are meant to be copied into a
-  user's workflow, and neither was tied to anything that would notice it rotting:
-  - The README's `uses: Dashtid/subcheck@vX.Y.Z` pin sat at `v0.4.0` across three releases -
-    including both fail-open fixes - because nothing checked it. `tests/test_docs_pins.py` now
-    asserts it equals `subcheck.__version__`.
-  - Half of `examples/` had no test: the immutable pair (0.2.0) and the reusable-workflow pair
-    (0.4.0) were never loaded by anything, so 0.4.1's stricter policy validation could have broken
-    a shipped example silently. `tests/test_examples.py` loads **every** policy example and runs
-    **every** claims example, discovered from the directory rather than listed, so a new example is
-    covered the moment the file lands. It asserts its own globs are non-empty first - a
-    parametrized test over an empty glob passes vacuously, which is the same shape of fail-open
-    this project keeps turning up elsewhere.
-
-  Tests only; no behaviour change. 122 -> 135 tests, coverage still 100%.
-
 ## [0.5.0] - 2026-09-02
 
 ### Added
+
 - **Advisory for a `sub` that identifies the repository and nothing else.** `include_claim_keys:
   ["repo"]` mints a subject of exactly `repo:ORG/REPO`, with no `ref`, `environment` or event
   segment. An IAM `StringEquals` condition on that value is an exact match holding no wildcard, and
@@ -117,6 +120,7 @@ All notable changes are documented here. Format based on
   `gh-aws-repo-only-customized-sub-admits-everything`, which arrived with the 0.5.2 pin below.
 
 ### Changed
+
 - Pinned corpus bumped `subvectors==0.3.0` -> `0.6.0`, **and this one did carry a re-derivation**,
   unlike the two bumps before it. Measured rather than assumed - comparing every `issuer: github`
   subject string across the span shows **none removed and none changed**, and two added:
@@ -148,6 +152,7 @@ All notable changes are documented here. Format based on
 ## [0.4.2] - 2026-09-01
 
 ### Fixed
+
 - **A claims file that is not a JSON object was half-processed instead of rejected.**
   `decode_claims` has always required the JWT payload to decode to an object; `--claims` went
   straight to `json.loads` with no such check, so the tool's two claim-input paths disagreed about
@@ -170,6 +175,7 @@ All notable changes are documented here. Format based on
   guard rejects the wrong *shape*, not an empty token.
 
 ### Added
+
 - `tests/test_claims_shape.py` - 28 regression tests, 27 of which fail against 0.4.1. One of them
   is a parity test asserting that `--token-file` and `--claims` now return the same verdict and the
   same exit code for the same non-object payload, since that asymmetry is what caused this.
@@ -181,6 +187,7 @@ All notable changes are documented here. Format based on
   Coverage 95% -> **100%**, every module (still 100% after this release's guards).
 
 ### Changed
+
 - README documents the exit codes explicitly (`0` / `1` / `2`) instead of "non-zero on any
   finding". Both 0.4.1 and 0.4.2 turn on the 1-vs-2 distinction, and someone wiring this into a CI
   gate has to know which code means "fix your config" and which means "the gate caught something".
@@ -188,6 +195,7 @@ All notable changes are documented here. Format based on
 ## [0.4.1] - 2026-08-31
 
 ### Fixed
+
 - **A malformed policy could pass every token it was written to reject.** Two silent fail-open
   paths, both found by an audit sweep and both reproduced through the shipped CLI before fixing:
   - **Claim rules written at the top level were ignored entirely.** `issuer` and `audience`
@@ -213,6 +221,7 @@ All notable changes are documented here. Format based on
   All constraints are now listed, which is also what the validator actually requires.
 
 ### Added
+
 - CI now **executes the composite action** (`uses: ./`) against a policy pinning this repository's
   own OIDC token, in both text and JSON formats. `action.yml` is the entry point the README
   advertises and nothing had ever run it, so a break would have surfaced in a user's pipeline
@@ -224,10 +233,10 @@ All notable changes are documented here. Format based on
   `validator.py` at 100%.
 
 ### Changed
+
 - The two `# nosec B105` comments no longer carry trailing prose, which bandit was parsing as a
   comma-separated list of test IDs and warning about on every run.
 
-### Changed
 - Pinned corpus bumped `subvectors==0.2.1` -> `0.3.0`, the release carrying the first six
   `observed` vectors. **No fixture re-derivation was needed and that is a verified fact, not an
   assumption**: `git diff v0.2.1..v0.3.0 -- vectors/` changes no `"subject"` line at all — 0.3.0
@@ -239,6 +248,7 @@ All notable changes are documented here. Format based on
 ## [0.4.0] - 2026-08-25
 
 ### Added
+
 - **Token-lifetime notes** for `exp` / `nbf` / `iat`, as advisories and never failures: enforcing a
   token's lifetime is the cloud provider's job at assume-time, and gating on it here would imply an
   authentication control this tool explicitly does not provide. They pay for themselves on the
@@ -261,6 +271,7 @@ conformance corpus, now pinned as a dev dependency (`subvectors==0.2.0`) so the 
 when the pin is bumped deliberately.
 
 ### Fixed
+
 - **A customized `sub` mis-decoded, and it could fail a correct policy.** For the documented
   combined form `repo:ORG/REPO:environment:ENV:job_workflow_ref:...`, the context value was read
   to end-of-string, so `environment` decoded as `"ENV:job_workflow_ref:ORG/AUTO/..."` instead of
@@ -268,6 +279,7 @@ when the pin is bumped deliberately.
   really was `prod`. The `job_workflow_ref` portion is now split off before the context is parsed.
 
 ### Added
+
 - `job_workflow_ref` subject decoding, both documented shapes: appended to the default grammar,
   and the jwr-only form that replaces it. Decomposed into `job_workflow_repository`,
   `job_workflow_path` and `job_workflow_git_ref`. The workflow's repository is deliberately *not*
@@ -287,6 +299,7 @@ tool inspects). Also ships `action.yml`, so a workflow can gate with
 `uses: Dashtid/subcheck@v0.2.0` instead of a curl+pip snippet.
 
 ### Added
+
 - Immutable subject-claims support: `parse_github_sub` decodes both the legacy and the immutable
   `repo:owner@id/repo@id:...` `sub` formats, exposing owner/repo IDs and a `format` field.
 - Report `notes`: advisory hints about the 2026-07-15 immutable-format migration (a name-based
@@ -295,10 +308,12 @@ tool inspects). Also ships `action.yml`, so a workflow can gate with
 - `examples/claims-immutable.json` + `examples/policy-immutable.json` (an id-pinned durable policy).
 
 ### Changed
+
 - CI also runs on Python 3.13, type-checks with `mypy`, and reports coverage; the package now
   ships a `py.typed` marker.
 
 ### Fixed
+
 - **Corrected a factually wrong threat description.** A fork's pull request cannot mint an OIDC
   token for the upstream repo (GitHub downgrades `id-token: write` and never injects
   `ACTIONS_ID_TOKEN_REQUEST_TOKEN` for fork `pull_request` runs). The README now names the real
@@ -325,6 +340,7 @@ tool inspects). Also ships `action.yml`, so a workflow can gate with
 ## [0.1.0] - 2026-07-15
 
 ### Added
+
 - Decode a GitHub Actions OIDC JWT's claims (`--token` / `--token-file` / `--claims`),
   without signature verification (inspection only).
 - Expected-claims policy in YAML or JSON: `equals`, `in`, `matches`, `glob`, `required`,

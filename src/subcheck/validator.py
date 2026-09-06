@@ -61,12 +61,24 @@ def validate(claims: dict, policy: Policy) -> list[Result]:
         actual = claims[rule.name]
         if _matches(rule, actual):
             results.append(
-                Result(rule.name, PASS, rule.severity, expected, actual,
-                       f"claim {rule.name!r} satisfies {expected}")
+                Result(
+                    rule.name,
+                    PASS,
+                    rule.severity,
+                    expected,
+                    actual,
+                    f"claim {rule.name!r} satisfies {expected}",
+                )
             )
         else:
             results.append(
-                Result(rule.name, FAIL, rule.severity, expected, actual,
-                       f"claim {rule.name!r}={actual!r} does not satisfy {expected}")
+                Result(
+                    rule.name,
+                    FAIL,
+                    rule.severity,
+                    expected,
+                    actual,
+                    f"claim {rule.name!r}={actual!r} does not satisfy {expected}",
+                )
             )
     return results

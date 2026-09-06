@@ -14,7 +14,7 @@ CLAIM_SEVERITY = {
     "sub": "high",
     "repository": "high",
     "repository_owner": "high",
-    "repository_id": "high",         # immutable trust anchors (survive rename/transfer)
+    "repository_id": "high",  # immutable trust anchors (survive rename/transfer)
     "repository_owner_id": "high",
     # the only claim constraining WHICH workflow code minted the token; AWS accepts it as an
     # alternative identity-provider control to sub.
@@ -36,7 +36,7 @@ class ClaimRule:
     equals: str | None = None
     one_of: list | None = None
     matches: str | None = None  # regex, applied with re.search
-    glob: str | None = None     # fnmatch-style pattern
+    glob: str | None = None  # fnmatch-style pattern
     required: bool = True
 
     @property
@@ -106,8 +106,7 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
             # `in: production` (a one-item YAML list missing its '- ') became
             # Python containment: substring matching, so 'prod' and even '' passed.
             raise ValueError(
-                f"claim {name!r}: 'in' must be a list of values, got "
-                f"{type(one_of).__name__}"
+                f"claim {name!r}: 'in' must be a list of values, got {type(one_of).__name__}"
             )
         matches = spec.get("matches")
         if matches is not None:
@@ -129,9 +128,7 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
         if not isinstance(required, bool):
             # bool("false") is True, so a quoted boolean silently made an
             # optional claim mandatory.
-            raise ValueError(
-                f"claim {name!r}: 'required' must be true or false, got {required!r}"
-            )
+            raise ValueError(f"claim {name!r}: 'required' must be true or false, got {required!r}")
         return ClaimRule(
             name=name,
             equals=spec.get("equals"),

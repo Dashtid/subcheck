@@ -32,6 +32,7 @@ def _notes(sub: str) -> str:
 
 # --- decoding ----------------------------------------------------------------
 
+
 def test_the_documented_customized_subject_decodes():
     parsed = parse_github_sub(DOCS_EXAMPLE)
     assert parsed["customized"] is True
@@ -73,6 +74,7 @@ def test_subjects_that_must_not_be_read_as_customized(sub):
 
 
 # --- advisories --------------------------------------------------------------
+
 
 def test_percent_encoded_colon_is_reported_with_the_failure_mode():
     note = _notes("repo:octo-org/octo-repo:environment:Production%3AV1")

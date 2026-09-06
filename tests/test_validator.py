@@ -9,9 +9,7 @@ def _policy():
             "audience": "sts.amazonaws.com",
             "claims": {
                 "repository": {"equals": "acme/api"},
-                "sub": {
-                    "matches": r"^repo:acme/api:(ref:refs/heads/main|environment:production)$"
-                },
+                "sub": {"matches": r"^repo:acme/api:(ref:refs/heads/main|environment:production)$"},
                 "runner_environment": {"equals": "github-hosted"},
                 "environment": {"equals": "production", "required": True},
             },

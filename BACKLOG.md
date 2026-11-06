@@ -183,6 +183,19 @@ Open follow-ups from the same pass:
   tool's core job, not trust-condition simulation. The advisories describe what the token's subject
   omits; they do not evaluate a condition against it.
 
+- `[ ]` **An operator key with no value is read as no constraint - open, decision pending.** In a
+  rule such as `repository: {equals: }` (YAML `equals:` with nothing after it) the operator loads
+  as `null`, and `_rule_from_spec` (`src/subcheck/policy.py`, the `ClaimRule(...)` it returns)
+  passes a `None` `equals`/`matches`/`glob`/`in` straight through. A rule whose operators are all
+  `None` is a presence check, so the gate passes any token that carries the claim at all.
+  Reproduced through the CLI: claims naming a different repository report
+  `PASS (1 pass, 0 fail, 0 missing)` with "claim 'repository' satisfies present" and exit 0, while
+  the same rule with `equals: Dashtid/subcheck` fails them and exits 1. `matches:`, `glob:` and
+  `in:` with no value behave the same way. Same class as the two fail-opens v0.4.1 closed: the key
+  is accepted, and its empty value is never checked. The released 0.5.0 has it. Found in a review
+  on 2026-09-14, reproduced 2026-10-21 and again 2026-11-06. Not fixed yet: the choice is between
+  rejecting a null operator on the rc=2 bad-policy path and keeping it as a documented presence
+  check.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

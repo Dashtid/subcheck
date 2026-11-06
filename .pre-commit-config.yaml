@@ -1,13 +1,14 @@
 # Shared estate pre-commit core.
 #
-# Every hook below is pinned to the highest revision ALREADY in use somewhere in
-# this estate, not the newest published one, so each is known to resolve on this
-# machine. Move them with `pre-commit autoupdate`, never by hand.
+# Every hook below is pinned to an exact revision, and a revision moves only once
+# its release is at least 7 days old (a security fix may move sooner). Pins move
+# in the shared standard and are rolled out from there, never edited in a
+# generated file. `pre-commit autoupdate` takes the newest tag on the day it
+# appears, so it shows what is new; it does not choose the pin.
 #
-# That rule is only as good as the survey behind it: gitleaks was pinned at
-# v8.30.0 until private-toolkit and sysadmin-toolkit were folded in on
-# 2026-09-04 and turned out to be running v8.30.1. Widening the survey is part
-# of adding a repository, not an afterthought.
+# Adding a repository starts with a survey of the revisions it already runs:
+# gitleaks stayed pinned one patch behind until two repositories joined on
+# 2026-09-04 and turned out to be running the newer one.
 #
 # Install once per clone:
 #     pre-commit install --install-hooks
@@ -26,8 +27,8 @@
 #     exactly the way a real tamper would;
 #   * in a unified diff a context line MUST begin with a space, so
 #     trailing-whitespace stripping that space is corruption. It rewrote 65 lines
-#     across two archived patches in oss-contributions. A .sarif is a scan result,
-#     which is evidence for the same reason.
+#     across two archived patches. A .sarif is a scan result, which is evidence
+#     for the same reason.
 exclude: '(^|/)(tests?/fixtures|testdata|__snapshots__)/|\.(patch|diff|sarif)$'
 
 # pre-push is in the list because three repositories declare hooks at that
@@ -146,7 +147,7 @@ repos:
   # block, which is where Python tooling config lives; passing them here would
   # silently override a repository that meant something different.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.17.0
+    rev: v0.17.2
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix]
@@ -173,7 +174,7 @@ repos:
   #
   # To reproduce CI locally, APPEND (never prepend - it shadows python) the
   # shellcheck-py hook's own binary to PATH:
-  #   export PATH="$PATH:$HOME/.cache/pre-commit/<shellcheck repo dir>/py_env-python3.13/Scripts"
+  #   export PATH="$PATH:$HOME/.cache/pre-commit/<shellcheck repo dir>/py_env-python3.14/Scripts"
   # Find the directory with:
   #   grep -rl shellcheck ~/.cache/pre-commit/*/.pre-commit-hooks.yaml
   - repo: https://github.com/rhysd/actionlint

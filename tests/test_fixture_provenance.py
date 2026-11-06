@@ -1,9 +1,9 @@
 """The vendored fixture must stay derivable from the PINNED subvectors corpus.
 
-The full differential check (including the coverage direction and the weekly
-canary against subvectors main) lives in scripts/check_fixture_drift.py; this
-test wires the provenance direction into every plain pytest run so a fixture
-edit that orphans a subject fails locally, not a workflow later.
+The full differential check (provenance, coverage and mis-parse over the whole
+pinned corpus) lives in scripts/check_fixture_drift.py; this test wires the
+provenance direction into every plain pytest run so a fixture edit that orphans
+a subject fails locally, not a workflow later.
 """
 
 import json

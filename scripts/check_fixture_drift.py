@@ -23,7 +23,7 @@ CC0-1.0). Two things can rot silently, and this script fails loudly on both:
    defect even though it produced fields.
 
 Known-undecoded forms are allowlisted below rather than left to redden the
-scheduled run forever: a check that is always red carries no information.
+check forever: a check that is always red carries no information.
 Removing an allowlist entry is part of implementing that form's decoder
 (tracked in BACKLOG.md).
 
@@ -57,13 +57,12 @@ SUB_CLAIM_KEYS = ("job_workflow_ref", "repository_owner", "environment", "ref", 
 
 
 def upstream_github_subjects(subvectors: Path) -> set[str]:
-    """Subjects from a CHECKOUT of subvectors (the canary path).
+    """Subjects from a CHECKOUT of subvectors (``--subvectors PATH``).
 
     Reads every suite and filters on ``issuer``, deliberately NOT on the filename.
     The installed-corpus path enumerates suites through ``corpus.suite_names()`` and
     filters the same way, so a ``github`` vector living in a suite whose name does not
-    begin with ``github-`` would otherwise be seen by one path and not the other - and
-    the canary exists precisely to warn before the pinned check reddens.
+    begin with ``github-`` would otherwise be seen by one path and not the other.
     """
     subjects: set[str] = set()
     vector_files = sorted(subvectors.glob("vectors/*.json"))
@@ -87,8 +86,8 @@ def installed_github_subjects() -> set[str]:
 
     Reading via subvectors.corpus instead of a checkout makes the everyday CI
     check deterministic: it drifts only when the pin is bumped, never because
-    upstream main moved. The weekly canary still runs against a checkout of
-    main to give early warning of new subject forms.
+    upstream main moved. This is the only path CI runs: subvectors is archived,
+    so the weekly canary against a checkout of main was retired 2026-11-06.
     """
     try:
         from subvectors import corpus

@@ -169,7 +169,7 @@ repos:
   # shellcheck is on PATH - and it says nothing when it is not. GitHub's runner
   # images ship shellcheck; Windows dev boxes here do not. So the hook passes
   # locally, the gate goes red on push, and the diff is identical. That is
-  # exactly how sysadmin-toolkit earned this workflow on a local pass and then
+  # exactly how one repository here earned this workflow on a local pass and then
   # failed its first CI run with 38 findings (2026-09-06).
   #
   # To reproduce CI locally, APPEND (never prepend - it shadows python) the

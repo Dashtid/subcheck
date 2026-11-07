@@ -6,7 +6,9 @@ name: Fixture drift vs subvectors
 # fixture subject still exists in the pinned corpus), coverage (every github
 # subject there decodes) and mis-parse (no decoded value absorbs a later claim
 # key). Deterministic: it drifts only when the pin is bumped. Runs on changes
-# to the fixture, the checker, the pin, or this workflow.
+# to the fixture, the checker, the decoder it checks (src/subcheck/decoder.py,
+# the only module of this package the checker calls), the pin, or this
+# workflow.
 #
 # ci.yml's pytest run repeats only the provenance direction
 # (tests/test_fixture_provenance.py); coverage and mis-parse over the whole
@@ -21,12 +23,14 @@ on:
     paths:
       - tests/fixtures/github_subjects.json
       - scripts/check_fixture_drift.py
+      - src/subcheck/decoder.py
       - pyproject.toml
       - .github/workflows/fixture-drift.yml
   pull_request:
     paths:
       - tests/fixtures/github_subjects.json
       - scripts/check_fixture_drift.py
+      - src/subcheck/decoder.py
       - pyproject.toml
       - .github/workflows/fixture-drift.yml
 

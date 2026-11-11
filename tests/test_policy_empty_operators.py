@@ -7,6 +7,11 @@ claims naming a different repository, through the shipped CLI on 0.5.0. Same cla
 as the two fail-opens 0.4.1 closed - the key was accepted and its value was never
 checked.
 
+`claims:` itself had the same hole one level up. Left with no rules under it - or
+given `[]`, `''`, `false`, `0` or `{}` - it read as "no claim rules", so a policy
+that also set `issuer` and `audience` checked only those two and passed a token
+from any repository.
+
 The empty values are decided by what the matcher does with them, not by how they
 look:
 
@@ -42,6 +47,11 @@ OTHER_REPO = {
     "ref": "refs/heads/feature",
     "environment": "staging",
 }
+
+# The top-level shortcuts, which that token satisfies: on their own they cannot
+# keep it out, so whatever stands under 'claims' is the whole gate.
+ISS_AUD = {"issuer": OTHER_REPO["iss"], "audience": OTHER_REPO["aud"]}
+ISS_AUD_YAML = f"issuer: {OTHER_REPO['iss']}\naudience: {OTHER_REPO['aud']}\n"
 
 # --- an operator with no value -----------------------------------------------
 
@@ -84,6 +94,12 @@ def test_the_top_level_shortcuts_with_no_value_are_rejected(key):
     # failed on rc=1 - fail-closed, but a broken policy wearing the finding code.
     with pytest.raises(ValueError, match=f"policy: '{key}' has no value"):
         load_policy({key: None, "claims": {"repository": "acme/api"}})
+
+
+def test_issuer_and_audience_alone_are_still_a_policy():
+    # What the error offers instead of an empty 'claims' is to remove the key. A
+    # policy that checks only iss and aud is legitimate when it says so.
+    assert [rule.name for rule in load_policy(dict(ISS_AUD)).rules] == ["iss", "aud"]
 
 
 # --- empty values ------------------------------------------------------------
@@ -129,10 +145,10 @@ def test_the_explicit_presence_check_still_works():
 # --- through the CLI ---------------------------------------------------------
 
 
-def _run(tmp_path, policy_text):
+def _run(tmp_path, policy_text, suffix=".yaml"):
     claims = tmp_path / "claims.json"
     claims.write_text(json.dumps(OTHER_REPO), encoding="utf-8")
-    policy = tmp_path / "policy.yaml"
+    policy = tmp_path / f"policy{suffix}"
     policy.write_text(policy_text, encoding="utf-8")
     return main(["--claims", str(claims), "--policy", str(policy)])
 
@@ -172,6 +188,38 @@ def _run(tmp_path, policy_text):
 )
 def test_cli_exits_2_on_a_rule_that_cannot_constrain(tmp_path, capsys, policy_text, expected):
     assert _run(tmp_path, policy_text) == 2
+    out, err = capsys.readouterr()
+    assert expected in err
+    assert out == "", "a policy that was rejected must not print a verdict"
+
+
+_NOT_A_MAPPING = "policy 'claims' must be a mapping of claim -> rule, got"
+
+
+@pytest.mark.parametrize(
+    ("suffix", "policy_text", "expected"),
+    [
+        # YAML reads `claims:` as null whether nothing follows it or only comments
+        # do - the shape a policy takes when its last rule is commented out.
+        (
+            ".yaml",
+            ISS_AUD_YAML + "claims:\n  # repository: acme/payments-api\n",
+            "policy: 'claims' has no value",
+        ),
+        (".json", json.dumps({**ISS_AUD, "claims": None}), "policy: 'claims' has no value"),
+        (".yaml", ISS_AUD_YAML + "claims: []\n", f"{_NOT_A_MAPPING} list"),
+        (".yaml", ISS_AUD_YAML + "claims: ''\n", f"{_NOT_A_MAPPING} str"),
+        (".yaml", ISS_AUD_YAML + "claims: false\n", f"{_NOT_A_MAPPING} bool"),
+        (".yaml", ISS_AUD_YAML + "claims: 0\n", f"{_NOT_A_MAPPING} int"),
+        (".yaml", ISS_AUD_YAML + "claims: {}\n", "policy: 'claims' is empty"),
+    ],
+    ids=["no-value", "json-null", "empty-list", "empty-string", "false", "zero", "empty-mapping"],
+)
+def test_cli_exits_2_on_claims_with_no_rules(tmp_path, capsys, suffix, policy_text, expected):
+    # Was: PASS (2 pass, 0 fail, 0 missing), rc=0, for every one of these. The
+    # loader read each as "no claim rules", so the gate checked only iss and aud
+    # and passed a token from any repository.
+    assert _run(tmp_path, policy_text, suffix) == 2
     out, err = capsys.readouterr()
     assert expected in err
     assert out == "", "a policy that was rejected must not print a verdict"

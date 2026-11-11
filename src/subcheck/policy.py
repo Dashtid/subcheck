@@ -78,20 +78,29 @@ def load_policy(data: dict) -> Policy:
             f"policy: unknown top-level keys {sorted(unknown_top)} - claim rules "
             "belong under 'claims'; only 'issuer', 'audience' and 'claims' are read"
         )
-    for key in ("issuer", "audience"):
+    for key in ("issuer", "audience", "claims"):
         if key in data and data[key] is None:
-            # `issuer:` with nothing after it loads as null, and str(None) is
-            # 'None': every token then failed on rc=1, a broken policy wearing
-            # the gate-failure code.
+            # A key with nothing after it loads as null. `issuer:` went through
+            # str(None) and demanded 'None', so every token failed on rc=1 - a
+            # broken policy wearing the gate-failure code. `claims:` - left empty,
+            # or with every rule under it commented out - read as "no claim
+            # rules", so the gate checked only iss and aud and passed the rest.
             raise ValueError(f"policy: {key!r} has no value - give it one, or remove the key")
     rules: list = []
     if "issuer" in data:
         rules.append(ClaimRule(name="iss", equals=str(data["issuer"])))
     if "audience" in data:
         rules.append(ClaimRule(name="aud", equals=str(data["audience"])))
-    claims = data.get("claims") or {}
+    # A default, not `or {}`: `or` turned [], '', false and 0 into "no claim
+    # rules" too, so none of them ever reached the mapping check below.
+    claims = data.get("claims", {})
     if not isinstance(claims, dict):
-        raise ValueError("policy 'claims' must be a mapping of claim -> rule")
+        raise ValueError(
+            f"policy 'claims' must be a mapping of claim -> rule, got {type(claims).__name__}"
+        )
+    if "claims" in data and not claims:
+        # The same nothing, spelled {}; rejected like `in: []`.
+        raise ValueError("policy: 'claims' is empty - list the claim rules, or remove the key")
     for name, spec in claims.items():
         rules.append(_rule_from_spec(name, spec))
     if not rules:

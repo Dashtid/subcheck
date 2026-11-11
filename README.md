@@ -141,6 +141,10 @@ claims:
   environment: {required: true}    # present, with any value
 ```
 
+The same goes for `claims` itself: with no rules under it, it is rejected rather than read as "no
+claim rules", which would leave only the issuer and audience checked. A policy that means to check
+only those two leaves `claims` out.
+
 **Matching notes:** `matches` uses `re.search`, so it is *not* anchored — `matches: pull_request`
 matches that substring anywhere in the value. Anchor with `^…$` when you mean the whole claim (the
 examples do). `equals`/`in` compare against the value's real JSON type, so quote a number you expect

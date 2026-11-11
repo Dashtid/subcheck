@@ -23,6 +23,14 @@ All notable changes are documented here. Format based on
   (`claim: {required: true}`); the README's policy section says the same. Same class as the two
   fail-opens 0.4.1 closed: the key was validated and its value never was. Every published release
   from 0.2.0 through 0.5.0 has it.
+- **A `claims` key with no rules under it left only the issuer and audience checked.** `claims:`
+  with nothing after it - or with every rule under it commented out - is YAML for `null`, and the
+  loader read `null`, `[]`, `''`, `false` and `0` alike as "no claim rules" without asking whether
+  the key was there at all. A policy that also set `issuer` and `audience` therefore passed a token
+  from any repository: `PASS (2 pass, 0 fail, 0 missing)`, exit 0, through `--claims` and through
+  the Action's `--token -` path alike. `claims: {}` did the same. Each is now rejected as a bad
+  policy, exit `2`; a policy that means to check only the issuer and audience leaves `claims` out.
+  Every published release from 0.2.0 through 0.5.0 has it.
 
   Deliberately unchanged: `equals: ''` and `glob: ''` each match only an empty claim value. That
   is a real constraint - GitHub's documented example token carries `head_ref: ""` on a
@@ -66,11 +74,12 @@ All notable changes are documented here. Format based on
 
   Tests only; no behaviour change. 122 -> 135 tests, coverage still 100%.
 
-- `tests/test_policy_empty_operators.py` - 30 regression tests for the Security fix above, 24 of
-  which fail against 0.5.0. The 6 that pass pin what must not change: the empty-string constraints,
-  the explicit presence check, and a control showing the same claims still fail a rule that has
-  its value. `tests/test_docs_pins.py` now also loads every policy snippet in the README, because a
-  stricter loader could start rejecting one with nothing to notice. 156 -> 187 tests.
+- `tests/test_policy_empty_operators.py` - 38 regression tests for the Security fixes above, 31 of
+  which fail against 0.5.0. The 7 that pass pin what must not change: the empty-string constraints,
+  the explicit presence check, a policy of issuer and audience alone, and a control showing the
+  same claims still fail a rule that has its value. `tests/test_docs_pins.py` now also loads every
+  policy snippet in the README, because a stricter loader could start rejecting one with nothing to
+  notice. 156 -> 195 tests.
 
 ### Fixed
 

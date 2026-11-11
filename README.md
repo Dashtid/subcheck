@@ -135,11 +135,12 @@ claims:
   ref: [refs/heads/main, refs/heads/release]
 ```
 
-**Every rule needs an operator, and every operator needs a value.** `equals:` with nothing after it
-is YAML for `null`, and a null operator is rejected as a bad policy (exit `2`) rather than read as
-no constraint, which would pass any token that carries the claim. So is a rule with no operator at
-all, such as `repository: {}`, and so are `in: []`, which no value can match, an `in` item left as
-a bare `-`, and `matches: ''`, which every value matches. `equals: ''` and `glob: ''` are valid:
+**Every operator needs a value, and every rule needs an operator unless it asks only for presence
+with `required: true`.** `equals:` with nothing after it is YAML for `null`, and a null operator is
+rejected as a bad policy (exit `2`) rather than read as no constraint, which would pass any token
+that carries the claim. So is a rule with neither an operator nor `required: true`, such as
+`repository: {}`, and so are `in: []`, which no value can match, an `in` item left as a bare `-`,
+and `matches: ''`, which every value matches. `equals: ''` and `glob: ''` are valid:
 each matches only an empty claim value. To require a claim without constraining its value, say so
 with `required` alone:
 

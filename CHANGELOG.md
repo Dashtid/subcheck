@@ -83,12 +83,12 @@ All notable changes are documented here. Format based on
 
   Tests only; no behaviour change. 122 -> 135 tests, coverage still 100%.
 
-- `tests/test_policy_empty_operators.py` - 43 regression tests for the Security fixes above, 36 of
-  which fail against 0.5.0. The 7 that pass pin what must not change: the empty-string constraints,
-  the explicit presence check, a policy of issuer and audience alone, and a control showing the
-  same claims still fail a rule that has its value. `tests/test_docs_pins.py` now also loads every
-  policy snippet in the README, because a stricter loader could start rejecting one with nothing to
-  notice. 156 -> 200 tests.
+- `tests/test_policy_empty_operators.py` - 47 regression tests for the Security fixes above and the
+  first two Fixed entries below, 40 of which fail against 0.5.0. The 7 that pass pin what must not
+  change: the empty-string constraints, the explicit presence check, a policy of issuer and
+  audience alone, and a control showing the same claims still fail a rule that has its value.
+  `tests/test_docs_pins.py` now also loads every policy snippet in the README, because a stricter
+  loader could start rejecting one with nothing to notice. 156 -> 204 tests.
 
 ### Fixed
 
@@ -97,7 +97,10 @@ All notable changes are documented here. Format based on
   finding - the confusion exit `2` exists to prevent. It now exits `2` as a bad policy, and so does
   its shorthand, a claim given `[]`. One policy that used to run no longer loads:
   `{in: [], required: false}`, which passed only while the claim was absent. Nothing documented
-  that as a way to forbid a claim, but it worked as one.
+  that as a way to forbid a claim, but it worked as one. An `in` item with no value - a bare `-`,
+  or `~` - is YAML for `null` and asked for a JSON null, so alone in the list it made the same
+  mistake. It is now rejected the same way, in `in:` and in the shorthand, and beside a real value
+  too, where it was harmless but still a value the author meant to write.
 - **`issuer:` or `audience:` with no value demanded the literal string `'None'`.** The shortcut
   went through `str()`, so every token failed, on exit 1. Rejected on the exit-`2` path, like the
   operators above.

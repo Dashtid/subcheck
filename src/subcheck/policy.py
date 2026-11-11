@@ -118,6 +118,12 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
                 f"claim {name!r}: an empty list (the shorthand for 'in') matches no value - "
                 "list the allowed values"
             )
+        if any(item is None for item in spec):
+            # And the same item with no value, checked below too.
+            raise ValueError(
+                f"claim {name!r}: the list (the shorthand for 'in') has an item with no value - "
+                "a bare '-' or '~' is YAML for null; give the item a value, or remove it"
+            )
         return ClaimRule(name=name, one_of=list(spec))
     if isinstance(spec, dict):
         unknown = set(spec) - _ALLOWED_KEYS
@@ -146,6 +152,14 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
             raise ValueError(
                 f"claim {name!r}: 'in' is an empty list, which no value can match - "
                 "list the allowed values"
+            )
+        if one_of is not None and any(item is None for item in one_of):
+            # An item left as a bare '-' is null, the same "no value" as an empty
+            # operator. It asked for a JSON null, so alone in the list it failed
+            # every token carrying the claim, on rc=1 - the `in: []` mistake again.
+            raise ValueError(
+                f"claim {name!r}: 'in' has an item with no value - a bare '-' or '~' is YAML "
+                "for null; give the item a value, or remove it"
             )
         matches = spec.get("matches")
         if matches is not None:

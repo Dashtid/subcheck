@@ -209,7 +209,9 @@ Open follow-ups from the same pass:
   a rule with no operator at all still a bare presence check: `repository: {}` - what a serializer
   that drops null keys makes of `{"equals": null}` - passed a different repository, and
   `{required: false}` alone could not fail. The decision above already said a presence check is
-  written on purpose as `{required: true}`; now the loader enforces it, on rc=2.
+  written on purpose as `{required: true}`; now the loader enforces it, on rc=2. For consistency
+  it also rejects an `in` item left as a bare `-` (or `~`): null again, asking for a JSON null, so
+  alone in the list it failed every token on rc=1 - the `in: []` mistake.
   **The lesson worth keeping:** 0.4.1 validated every operator value *that was not `None`*, and
   `spec.get(op)` returns `None` for "absent" and for "present but empty" alike - so the one value
   every check skipped was the one that switched the rule off. A guard written as

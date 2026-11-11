@@ -24,7 +24,8 @@ look:
   presence check as a null operator, and it is rejected the same way;
 * `in: []` - no value is a member of an empty list, so every token carrying the
   claim failed on rc=1: fail-closed, but a policy mistake reported as a finding,
-  which is the confusion rc=2 exists to prevent;
+  which is the confusion rc=2 exists to prevent. An `in` item left as a bare `-`
+  is null, asked for a JSON null, and made the same mistake when it stood alone;
 * `equals: ''` and `glob: ''` stay valid - each matches only an empty claim value,
   so they constrain rather than skip. GitHub's documented example token carries
   `head_ref: ""` on a `workflow_dispatch` run, so pinning an empty value is a real
@@ -141,6 +142,21 @@ def test_empty_values_that_cannot_constrain_are_rejected(spec, expected):
 
 
 @pytest.mark.parametrize(
+    ("spec", "expected"),
+    [
+        ({"in": [None]}, "'in' has an item with no value"),
+        (["production", None], "the list (the shorthand for 'in') has an item with no value"),
+    ],
+    ids=["in-alone", "shorthand-beside-a-value"],
+)
+def test_a_list_item_with_no_value_is_rejected(spec, expected):
+    # Was: a rule asking for JSON null. Alone in the list it failed every token
+    # carrying the claim, on rc=1; beside a value it sat there unnoticed.
+    with pytest.raises(ValueError, match=re.escape(expected)):
+        load_policy({"claims": {"environment": spec}})
+
+
+@pytest.mark.parametrize(
     "spec",
     [{"equals": ""}, {"glob": ""}, "", {"in": [""]}],
     ids=["equals-empty", "glob-empty", "shorthand-empty-string", "in-holding-empty"],
@@ -188,9 +204,11 @@ def _run(tmp_path, policy_text, suffix=".yaml"):
         ("claims:\n  ref:\n    glob:\n", "claim 'ref': 'glob' has no value"),
         ("claims:\n  environment:\n    in:\n", "claim 'environment': 'in' has no value"),
         ("claims:\n  sub:\n    matches: ''\n", "claim 'sub': 'matches' is an empty pattern"),
-        # These two exited 1, reporting a policy mistake as a finding.
+        # These four exited 1, reporting a policy mistake as a finding.
         ("claims:\n  environment:\n    in: []\n", "claim 'environment': 'in' is an empty list"),
         ("claims:\n  environment: []\n", "the shorthand for 'in'"),
+        ("claims:\n  environment:\n    in:\n      -\n", "'in' has an item with no value"),
+        ("claims:\n  environment: [~]\n", "(the shorthand for 'in') has an item with no value"),
         ("issuer:\naudience: sts.amazonaws.com\n", "policy: 'issuer' has no value"),
     ],
     ids=[
@@ -202,6 +220,8 @@ def _run(tmp_path, policy_text, suffix=".yaml"):
         "matches-empty",
         "in-empty",
         "shorthand-empty",
+        "in-item-no-value",
+        "shorthand-item-no-value",
         "issuer",
     ],
 )

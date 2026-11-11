@@ -107,9 +107,10 @@ Inputs (choose one): `--token <jwt>` (`-` for stdin), `--token-file <path>`, or
 
 ## Policy
 
-YAML or JSON. `issuer`/`audience` are shortcuts for the `iss`/`aud` claims; everything else lives
-under `claims`. Each claim takes one or more of `equals`, `in` (list), `matches` (regex), `glob`,
-and `required` (default `true`).
+YAML or JSON. `issuer`/`audience` are shortcuts for the `iss`/`aud` claims, and each takes a single
+string - quote one that YAML would read as a number or a boolean (`audience: '12345'`). Everything
+else lives under `claims`. Each claim takes one or more of `equals`, `in` (list), `matches`
+(regex), `glob`, and `required` (default `true`).
 
 ```yaml
 issuer: https://token.actions.githubusercontent.com

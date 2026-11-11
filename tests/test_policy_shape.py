@@ -276,3 +276,45 @@ def test_a_claim_name_that_is_not_a_string_exits_2_through_the_cli(tmp_path, cap
     out, err = capsys.readouterr()
     assert out == "", "a policy that was rejected must not print a verdict"
     assert "policy: claim names must be non-empty strings, got 1" in err
+
+
+# --- the issuer and audience shortcuts take a string ---------------------------
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        # A JWT `aud` may be an array, so a list is the natural slip.
+        ({"audience": ["sts.amazonaws.com"]}, "policy: 'audience' must be a string, got list"),
+        ({"issuer": False}, "policy: 'issuer' must be a string, got bool"),
+        ({"audience": {"value": "x"}}, "policy: 'audience' must be a string, got dict"),
+        # YAML reads an unquoted 12345 as an int, and `0123` as 83.
+        ({"audience": 12345}, "policy: 'audience' must be a string, got int"),
+    ],
+    ids=["audience-list", "issuer-false", "audience-mapping", "audience-number"],
+)
+def test_the_issuer_and_audience_shortcuts_must_be_strings(data, expected):
+    # Was: str() of the value, a rule no token could satisfy - every token
+    # failed on rc=1, a broken policy wearing the finding code.
+    with pytest.raises(ValueError, match=re.escape(expected)):
+        load_policy({**data, "claims": {"repository": "acme/api"}})
+
+
+def test_a_quoted_numeric_audience_still_works():
+    # What the error asks for instead: quoted, it is the string a token carries.
+    policy = load_policy({"audience": "12345"})
+    assert validate({"aud": "12345"}, policy)[0].status == PASS
+
+
+def test_a_non_string_audience_exits_2_through_the_cli(tmp_path, capsys):
+    from subcheck.cli import main
+
+    claims = tmp_path / "c.json"
+    claims.write_text('{"aud": "sts.amazonaws.com"}', encoding="utf-8")
+    policy = tmp_path / "p.yaml"
+    # Was: FAIL (0 pass, 1 fail, 0 missing) and rc=1, against the very audience it lists.
+    policy.write_text("audience: [sts.amazonaws.com]\n", encoding="utf-8")
+    assert main(["--claims", str(claims), "--policy", str(policy)]) == 2
+    out, err = capsys.readouterr()
+    assert out == "", "a policy that was rejected must not print a verdict"
+    assert "policy: 'audience' must be a string, got list" in err

@@ -88,11 +88,24 @@ def load_policy(data: dict) -> Policy:
             # or with every rule under it commented out - read as "no claim
             # rules", so the gate checked only iss and aud and passed the rest.
             raise ValueError(f"policy: {key!r} has no value - give it one, or remove the key")
+    for key in ("issuer", "audience"):
+        value = data.get(key)
+        if key in data and not isinstance(value, str):
+            # The shortcuts went through str(), so anything but a string became
+            # text no token carries: `audience: [sts.amazonaws.com]` demanded
+            # "['sts.amazonaws.com']" and `issuer: false` demanded 'False', so
+            # every token failed on rc=1. A number fared little better - YAML
+            # reads `0123` as 83 - so it has to be quoted, like an `equals` value
+            # meant as a string.
+            raise ValueError(
+                f"policy: {key!r} must be a string, got {type(value).__name__} - write one "
+                "value, in quotes if YAML would read it as a number or a boolean"
+            )
     rules: list = []
     if "issuer" in data:
-        rules.append(ClaimRule(name="iss", equals=str(data["issuer"])))
+        rules.append(ClaimRule(name="iss", equals=data["issuer"]))
     if "audience" in data:
-        rules.append(ClaimRule(name="aud", equals=str(data["audience"])))
+        rules.append(ClaimRule(name="aud", equals=data["audience"]))
     # A default, not `or {}`: `or` turned [], '', false and 0 into "no claim
     # rules" too, so none of them ever reached the mapping check below.
     claims = data.get("claims", {})

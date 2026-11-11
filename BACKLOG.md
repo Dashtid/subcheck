@@ -236,6 +236,11 @@ Open follow-ups from the same pass:
   - A claim name that is not a non-empty string. `1:` or `~:` under `claims` loaded, and the text
     report crashed on `len()` of the name - a traceback on rc=1 - while `--format json` reported
     normally. Every published release has it. Found by the same review.
+  - An `issuer` or `audience` that is not a string. The shortcuts went through `str()`, which the
+    null fix above had closed for `None` only: `audience: [sts.amazonaws.com]` demanded
+    `"['sts.amazonaws.com']"` and failed every token. Both now take a string and nothing else, so
+    an unquoted numeric audience has to be quoted - a deliberate change, since YAML reads `0123`
+    as 83 and `str()` never saw what the author wrote. Found by the same review.
 - `[x]` **An empty `--policy` turned the gate into a decode - DONE 2026-11-11 (v0.5.1), rejected
   on rc=2 in the CLI and in `action.yml`.** `if not args.policy` in `cli.py` read `--policy ""`
   the way it read no `--policy` at all, so the CLI printed the claims and exited 0. `action.yml`

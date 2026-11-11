@@ -140,6 +140,17 @@ All notable changes are documented here. Format based on
   reported its claim missing on exit 1. Each is now rejected as a bad policy, exit `2`. Every
   published release has it. Five tests in `tests/test_policy_shape.py`, all failing against
   0.5.0; 214 -> 219 tests.
+- **An `issuer` or `audience` that was not a string demanded text no token carries.** The `str()`
+  that made `issuer:` with no value demand `'None'` (above) did the same to every other
+  non-string. `audience: [sts.amazonaws.com]` - an easy slip, since a JWT `aud` may be an array -
+  demanded `"['sts.amazonaws.com']"`, and `issuer: false` demanded `'False'`, so every token
+  failed on exit 1, even one carrying the very audience the list named. Both shortcuts now take
+  only a string; anything else is rejected, exit `2`. One policy that used to work no longer
+  loads: an unquoted number, which `str()` turned back into text. YAML need not keep a number as
+  written - it reads `0123` as 83 - so quote it, as the README now says, the way an `equals` value
+  meant as a string already had to be. Every published release has it. Six tests in
+  `tests/test_policy_shape.py`, five of which fail against 0.5.0 - the sixth pins that a quoted
+  number still works; 219 -> 225 tests.
 - **The customized-`sub` note blamed `job_workflow_ref` even when that was not the customization.**
   It was written when the only customized shapes subcheck decoded were the two `job_workflow_ref`
   ones, and it asserted that cause unconditionally. It now names what actually happened.

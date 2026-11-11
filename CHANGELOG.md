@@ -97,9 +97,10 @@ All notable changes are documented here. Format based on
   Tests only; no behaviour change. 122 -> 135 tests, coverage still 100%.
 
 - `tests/test_policy_empty_operators.py` - 47 regression tests for the first three Security fixes
-  above and the first two Fixed entries below, 40 of which fail against 0.5.0. The 7 that pass pin what must not
-  change: the empty-string constraints, the explicit presence check, a policy of issuer and
-  audience alone, and a control showing the same claims still fail a rule that has its value.
+  above and the first two Fixed entries below, 40 of which fail against 0.5.0. The 7 that pass pin
+  what must not change: the empty-string constraints, the explicit presence check, a policy of
+  issuer and audience alone, and a control showing the same claims still fail a rule that has its
+  value.
   `tests/test_docs_pins.py` now also loads every policy snippet in the README, because a stricter
   loader could start rejecting one with nothing to notice. 156 -> 204 tests.
 

@@ -124,6 +124,14 @@ All notable changes are documented here. Format based on
   to give. It now names the keys either way. Every published release has the rule-level form, and
   the top-level form since 0.4.1 started rejecting unknown top-level keys. Three tests in
   `tests/test_policy_shape.py`, all failing against 0.5.0; 204 -> 207 tests.
+- **A `matches` pattern that `re` could not compile was not always rejected as one.** 0.4.1 began
+  compiling `matches` at load time and caught `re.error`, but `re.compile` raises more than that.
+  `matches: 'a{4294967296}'`, a repeat count past `re`'s limit, raises `OverflowError`, which
+  escaped as a traceback on exit 1 in every published release. Groups nested a few hundred deep
+  raise `RecursionError`: a traceback on exit 1 through 0.4.0, then exit `2` from 0.4.1 only
+  because it is a `RuntimeError`, with an error that named neither the claim nor the pattern.
+  Both are now the "is not a valid regex" rejection that names the claim. Two tests in
+  `tests/test_policy_shape.py`, both failing against 0.5.0; 212 -> 214 tests.
 - **The customized-`sub` note blamed `job_workflow_ref` even when that was not the customization.**
   It was written when the only customized shapes subcheck decoded were the two `job_workflow_ref`
   ones, and it asserted that cause unconditionally. It now names what actually happened.

@@ -7,6 +7,7 @@ tool exists to prevent, so each case is pinned as a regression test.
 
 import json
 import re
+import sys
 
 import pytest
 
@@ -71,6 +72,23 @@ def test_malformed_rule_values_are_rejected(spec, expected):
     # from validate(), exiting 1 - the "a claim did not match" code.
     with pytest.raises(ValueError, match=expected):
         load_policy({"claims": {"ref": spec}})
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "a{4294967296}",
+        # One level per frame of the limit is deeper than re's recursive parser can go.
+        "(" * sys.getrecursionlimit() + ")" * sys.getrecursionlimit(),
+    ],
+    ids=["repeat-count-overflow", "groups-nested-too-deep"],
+)
+def test_a_regex_re_cannot_compile_is_rejected_whatever_re_raises(pattern):
+    # re.compile raises more than re.error. The OverflowError for a repeat count
+    # past its limit escaped as a traceback on rc=1; the RecursionError for deep
+    # nesting reached rc=2 only as a RuntimeError, naming neither claim nor regex.
+    with pytest.raises(ValueError, match="claim 'sub': 'matches' is not a valid regex"):
+        load_policy({"claims": {"sub": {"matches": pattern}}})
 
 
 def test_equals_still_accepts_any_json_scalar():

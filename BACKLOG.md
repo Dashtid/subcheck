@@ -219,12 +219,20 @@ Open follow-ups from the same pass:
   that question for every falsy value at once, without asking. Ask it of every key the loader
   reads, not only of the one in the bug report - and ask what a rule means when none of its keys
   is there at all.
-- `[x]` **Unknown policy keys that were not all strings crashed the loader - DONE 2026-11-11
-  (v0.5.1).** Found by the same review, as a separate item. Both unknown-key errors sorted the keys
-  they named, and a YAML key need not be a string: `repository: {1: a, b: c}`, or a top-level `1:`
-  beside `foo:`, made `sorted()` compare an int with a str, so the `TypeError` exited 1 with a
-  traceback instead of 2. Sorted with `key=str` now. Every published release has the rule-level
-  form; the top-level one arrived with 0.4.1's unknown-top-level-key check.
+- `[x]` **Malformed policies that crashed the loader or failed every token on rc=1 - DONE
+  2026-11-11 (v0.5.1).** Each of these fails closed, and each reported a broken policy on the
+  "a claim did not match" code, the confusion rc=2 exists to prevent. All now exit 2 with a
+  message that names what is wrong.
+  - Unknown policy keys that were not all strings. Found by the same review, as a separate item.
+    Both unknown-key errors sorted the keys they named, and a YAML key need not be a string:
+    `repository: {1: a, b: c}`, or a top-level `1:` beside `foo:`, made `sorted()` compare an int
+    with a str, so the `TypeError` exited 1 with a traceback instead of 2. Sorted with `key=str`
+    now. Every published release has the rule-level form; the top-level one arrived with 0.4.1's
+    unknown-top-level-key check.
+  - A `matches` pattern that fails to compile with something other than `re.error`: a repeat count
+    past `re`'s limit (`OverflowError`, a traceback on rc=1 in every release), or groups nested a
+    few hundred deep (`RecursionError`, which has reached rc=2 since 0.4.1 only because it is a
+    `RuntimeError`, without naming the claim). Found by the next review of the release.
 - `[x]` **An empty `--policy` turned the gate into a decode - DONE 2026-11-11 (v0.5.1), rejected
   on rc=2 in the CLI and in `action.yml`.** `if not args.policy` in `cli.py` read `--policy ""`
   the way it read no `--policy` at all, so the CLI printed the claims and exited 0. `action.yml`

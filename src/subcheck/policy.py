@@ -181,7 +181,11 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
                 )
             try:
                 re.compile(matches)
-            except re.error as exc:
+            except (re.error, OverflowError, RecursionError) as exc:
+                # re.error is not all re.compile raises: a repeat count past its
+                # limit (`a{4294967296}`) is an OverflowError, which escaped as a
+                # traceback on rc=1, and groups nested a few hundred deep are a
+                # RecursionError, which reached rc=2 without naming the claim.
                 raise ValueError(f"claim {name!r}: 'matches' is not a valid regex: {exc}") from exc
         glob = spec.get("glob")
         if glob is not None and not isinstance(glob, str):

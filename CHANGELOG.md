@@ -148,7 +148,10 @@ All notable changes are documented here. Format based on
   - `environment:production%3Aeastus:repository_owner:octo-org` - a new **form**, unambiguously:
     the first vendored subject that neither starts with `repo:` nor is jwr-only. It pins
     `repository` and `format` as **absent**, the way 0.5.0's entry pinned `context` absent, because
-    the omission is the whole point of it upstream.
+    the omission is the whole point of it upstream. It is also the subject that forced the
+    customized-subject decoding under Added: the decoder could not read it at all, and the drift
+    check's COVERAGE direction went red on the first CI run after the pin moved - a bump that lands
+    a new grammar reddening at once rather than quietly.
 
   Also vendored, and overdue: `job_workflow_ref:octo-org/octo-automation/.github/workflows/oidc.yml@refs/heads/main`.
   It has been in the corpus since subvectors 0.2.0 and takes a completely different decoder branch
@@ -176,7 +179,7 @@ All notable changes are documented here. Format based on
 
 ### Changed
 
-- Pinned corpus bumped `subvectors==0.3.0` -> `0.6.0`, **and this one did carry a re-derivation**,
+- Pinned corpus bumped `subvectors==0.3.0` -> `0.5.2`, **and this one did carry a re-derivation**,
   unlike the two bumps before it. Measured rather than assumed - comparing every `issuer: github`
   subject string across the span shows **none removed and none changed**, and two added:
   - `repo:octo-org/octo-repo:environment:Sandbox` (0.5.0) is a new *value* of the `environment:`
@@ -197,12 +200,7 @@ All notable changes are documented here. Format based on
   `sub` condition's value list. 0.5.0 adds the `ForAllValues:`/`ForAnyValue:` set-operator tranche
   and a `condition.qualifier` schema property. 0.5.1 corrected and commit-pinned the corpus's
   Checkov citations - worth having under the pin, because the upstream PR this project's findings
-  fed into invites a maintainer to follow those links. 0.6.0 added the `%3A` tranche, which is what
-  forced the customized-subject decoding above: its
-  `environment:production%3Aeastus:repository_owner:octo-org` vector was the first upstream subject
-  the decoder could not read at all. The drift check's COVERAGE direction caught it on the first CI
-  run after the pin moved - the mechanism working as designed, a bump that lands a new grammar
-  reddening immediately rather than quietly.
+  fed into invites a maintainer to follow those links.
 
 ## [0.4.2] - 2026-09-01
 

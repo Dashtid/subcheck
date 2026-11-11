@@ -219,6 +219,12 @@ Open follow-ups from the same pass:
   that question for every falsy value at once, without asking. Ask it of every key the loader
   reads, not only of the one in the bug report - and ask what a rule means when none of its keys
   is there at all.
+- `[x]` **Unknown policy keys that were not all strings crashed the loader - DONE 2026-11-11
+  (v0.5.1).** Found by the same review, as a separate item. Both unknown-key errors sorted the keys
+  they named, and a YAML key need not be a string: `repository: {1: a, b: c}`, or a top-level `1:`
+  beside `foo:`, made `sorted()` compare an int with a str, so the `TypeError` exited 1 with a
+  traceback instead of 2. Sorted with `key=str` now. Every published release has the rule-level
+  form; the top-level one arrived with 0.4.1's unknown-top-level-key check.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

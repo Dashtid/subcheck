@@ -74,8 +74,10 @@ def load_policy(data: dict) -> Policy:
     # to reject, green and rc=0, because only 'issuer'/'audience' were read.
     unknown_top = set(data) - _ALLOWED_TOP_KEYS
     if unknown_top:
+        # key=str: a YAML key need not be a string (`1:`), and sorting an int
+        # against a str raised TypeError - a traceback on rc=1, not this rc=2.
         raise ValueError(
-            f"policy: unknown top-level keys {sorted(unknown_top)} - claim rules "
+            f"policy: unknown top-level keys {sorted(unknown_top, key=str)} - claim rules "
             "belong under 'claims'; only 'issuer', 'audience' and 'claims' are read"
         )
     for key in ("issuer", "audience", "claims"):
@@ -128,7 +130,8 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
     if isinstance(spec, dict):
         unknown = set(spec) - _ALLOWED_KEYS
         if unknown:
-            raise ValueError(f"claim {name!r}: unknown rule keys {sorted(unknown)}")
+            # key=str, for the same mixed-type keys as at the top level.
+            raise ValueError(f"claim {name!r}: unknown rule keys {sorted(unknown, key=str)}")
         for op in _OPERATORS:
             if op in spec and spec[op] is None:
                 # `equals:` with nothing after it loads as null, which reads the

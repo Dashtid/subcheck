@@ -6,6 +6,7 @@ tool exists to prevent, so each case is pinned as a regression test.
 """
 
 import json
+import re
 
 import pytest
 
@@ -201,3 +202,33 @@ def test_missing_policy_file_exits_2_through_the_cli(tmp_path, capsys):
     claims.write_text('{"repository": "acme/api"}', encoding="utf-8")
     assert main(["--claims", str(claims), "--policy", str(tmp_path / "nope.json")]) == 2
     assert "error:" in capsys.readouterr().err
+
+
+# --- unknown keys that are not all strings -----------------------------------
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        ({1: "x", "foo": "y"}, "policy: unknown top-level keys [1, 'foo']"),
+        ({"claims": {"repository": {1: "a", "b": "c"}}}, "unknown rule keys [1, 'b']"),
+    ],
+    ids=["top-level", "rule"],
+)
+def test_unknown_keys_of_mixed_types_are_named_not_crashed_on(data, expected):
+    # Was: sorting the unknown keys compared an int with a str and raised
+    # TypeError, which the CLI does not catch - a traceback on rc=1.
+    with pytest.raises(ValueError, match=re.escape(expected)):
+        load_policy(data)
+
+
+def test_unknown_keys_of_mixed_types_exit_2_through_the_cli(tmp_path, capsys):
+    from subcheck.cli import main
+
+    claims = tmp_path / "c.json"
+    claims.write_text('{"repository": "acme/api"}', encoding="utf-8")
+    policy = tmp_path / "p.yaml"
+    # YAML reads the bare 1 as an int key.
+    policy.write_text("claims:\n  repository: {1: a, b: c}\n", encoding="utf-8")
+    assert main(["--claims", str(claims), "--policy", str(policy)]) == 2
+    assert "claim 'repository': unknown rule keys [1, 'b']" in capsys.readouterr().err

@@ -104,6 +104,13 @@ All notable changes are documented here. Format based on
 - **`issuer:` or `audience:` with no value demanded the literal string `'None'`.** The shortcut
   went through `str()`, so every token failed, on exit 1. Rejected on the exit-`2` path, like the
   operators above.
+- **A policy whose unknown keys were not all strings crashed instead of being rejected.** A YAML
+  key need not be a string: `repository: {1: a, b: c}`, or a top-level `1:` beside a `foo:`, made
+  the unknown-key error sort an int against a str, and the `TypeError` escaped as a traceback on
+  exit 1 - the "a claim did not match" code - instead of the exit-`2` rejection that error exists
+  to give. It now names the keys either way. Every published release has the rule-level form, and
+  the top-level form since 0.4.1 started rejecting unknown top-level keys. Three tests in
+  `tests/test_policy_shape.py`, all failing against 0.5.0; 204 -> 207 tests.
 - **The customized-`sub` note blamed `job_workflow_ref` even when that was not the customization.**
   It was written when the only customized shapes subcheck decoded were the two `job_workflow_ref`
   ones, and it asserted that cause unconditionally. It now names what actually happened.

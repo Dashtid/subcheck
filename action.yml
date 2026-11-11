@@ -43,6 +43,13 @@ runs:
           echo "error: no OIDC token available - the calling job needs 'permissions: id-token: write'" >&2
           exit 2
         fi
+        # The runner does not enforce `required: true`, so a policy input that is
+        # missing, or whose expression came out empty, arrives here as "". The CLI
+        # rejects `--policy ""` as well; failing here says which input it was.
+        if [ -z "$SUBCHECK_POLICY" ]; then
+          echo "error: the 'policy' input is empty - give the path to the policy file" >&2
+          exit 2
+        fi
         python3 -m pip install --quiet --disable-pip-version-check "$SUBCHECK_ACTION_PATH"
         curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
           "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$SUBCHECK_AUDIENCE" \

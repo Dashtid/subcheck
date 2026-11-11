@@ -90,6 +90,10 @@ subcheck --token "$TOKEN" --policy .github/oidc-policy.yaml
 echo $?     # 0 = all matched, 1 = a claim didn't match, 2 = usage/parse error
 ```
 
+Only an *absent* `--policy` means decode-only. `--policy ""` - what an unset variable expands to -
+exits `2`, and so does the Action when its `policy` input is empty, so a gate whose policy path
+went missing fails instead of turning into a decode.
+
 Inputs (choose one): `--token <jwt>` (`-` for stdin), `--token-file <path>`, or
 `--claims <decoded-claims.json>`. Output: `--format text` (default) or `json`.
 

@@ -68,13 +68,26 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
-    if not args.policy:
+    # Decode-only is for a --policy that is ABSENT. `if not args.policy` also read
+    # `--policy ""` that way, so the gate printed the claims and exited 0 for a
+    # token from any repository. That is what action.yml runs whenever its
+    # `policy` input is empty or missing: it always passes --policy, and the
+    # runner does not enforce the input's `required: true`.
+    if args.policy is None:
         if args.format == "json":
             print(json.dumps(claims, indent=2))
         else:
             for key, value in claims.items():
                 print(f"{key}: {value}")
         return 0
+
+    if not args.policy.strip():
+        print(
+            "error: --policy was given an empty path - pass the policy file, "
+            "or omit --policy to only decode",
+            file=sys.stderr,
+        )
+        return 2
 
     try:
         policy = load_policy_file(args.policy)

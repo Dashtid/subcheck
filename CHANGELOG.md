@@ -44,6 +44,19 @@ All notable changes are documented here. Format based on
   Deliberately unchanged: `equals: ''` and `glob: ''` each match only an empty claim value. That
   is a real constraint - GitHub's documented example token carries `head_ref: ""` on a
   `workflow_dispatch` run - so neither is rejected, and neither reads as "no constraint".
+- **An empty `--policy` turned the gate into a decode that exited 0.** The CLI read `--policy ""`
+  exactly like no `--policy` at all: it printed the claims, checked nothing, and exited 0. The
+  Action reached that whenever its `policy` input was empty. `action.yml` passes
+  `--policy "$SUBCHECK_POLICY"` on every run, the runner does not enforce the input's
+  `required: true`, and an input that is left out, or whose expression evaluates to an empty
+  string, arrives as `""`. So `uses: Dashtid/subcheck@v0.5.0` with no usable policy passed a token
+  from any repository. Reproduced through `python -m subcheck --token - --policy ""`, the way the
+  Action runs it, with a token from a different repository: the decoded claims, and exit 0.
+  Decoding now runs only when `--policy` is absent. An empty or blank path exits `2`, and the
+  Action itself exits `2` on an empty `policy` input, before it installs anything or requests a
+  token. Every published release from 0.2.0 through 0.5.0 has it. Five tests in
+  `tests/test_cli_inputs.py`, four of which fail against 0.5.0, and CI now runs the Action with an
+  empty `policy` input and requires the step to fail; 207 -> 212 tests.
 
 ### Added
 
@@ -83,8 +96,8 @@ All notable changes are documented here. Format based on
 
   Tests only; no behaviour change. 122 -> 135 tests, coverage still 100%.
 
-- `tests/test_policy_empty_operators.py` - 47 regression tests for the Security fixes above and the
-  first two Fixed entries below, 40 of which fail against 0.5.0. The 7 that pass pin what must not
+- `tests/test_policy_empty_operators.py` - 47 regression tests for the first three Security fixes
+  above and the first two Fixed entries below, 40 of which fail against 0.5.0. The 7 that pass pin what must not
   change: the empty-string constraints, the explicit presence check, a policy of issuer and
   audience alone, and a control showing the same claims still fail a rule that has its value.
   `tests/test_docs_pins.py` now also loads every policy snippet in the README, because a stricter

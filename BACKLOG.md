@@ -225,6 +225,19 @@ Open follow-ups from the same pass:
   beside `foo:`, made `sorted()` compare an int with a str, so the `TypeError` exited 1 with a
   traceback instead of 2. Sorted with `key=str` now. Every published release has the rule-level
   form; the top-level one arrived with 0.4.1's unknown-top-level-key check.
+- `[x]` **An empty `--policy` turned the gate into a decode - DONE 2026-11-11 (v0.5.1), rejected
+  on rc=2 in the CLI and in `action.yml`.** `if not args.policy` in `cli.py` read `--policy ""`
+  the way it read no `--policy` at all, so the CLI printed the claims and exited 0. `action.yml`
+  passes `--policy "$SUBCHECK_POLICY"` on every run and the runner does not enforce an input's
+  `required: true`, so an Action step whose `policy` input was missing, or came out of its
+  expression empty, went green for a token from any repository. Every published release from
+  0.2.0 through 0.5.0 has it. Found by a review of the 0.5.1 fix that asked this release's
+  question of the CLI's own flags, where every other flag left empty already exited 2. The CLI
+  now decodes only when `--policy` is absent, and the Action checks its input before it installs
+  anything; CI runs the Action with an empty `policy` and requires the step to fail.
+  **The lesson is the one above, one layer out:** `if not x` cannot tell "absent" from "empty",
+  and an entry point that reads empty as absent hands the absent behaviour - here a decode that
+  always exits 0 - to whoever controls the empty value.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

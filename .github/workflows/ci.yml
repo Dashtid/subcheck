@@ -74,3 +74,18 @@ jobs:
         with:
           policy: ci-policy.yaml
           format: json
+      # The negative case, on the real runner. It does not enforce an action
+      # input's `required: true`, so a policy input that is empty or missing
+      # reaches action.yml as "" - which through 0.5.0 ran the CLI as a decode
+      # and left the step green for a token from any repository.
+      - name: An empty policy input fails the step
+        id: empty-policy
+        continue-on-error: true
+        uses: ./
+        with:
+          policy: ""
+      - name: Assert the empty policy input did not pass
+        if: steps.empty-policy.outcome != 'failure'
+        run: |
+          echo "the action passed with an empty policy input" >&2
+          exit 1

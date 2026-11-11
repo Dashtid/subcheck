@@ -5,9 +5,12 @@
 point ran on code no test executed.
 """
 
+import io
 import json
+import os
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -121,3 +124,60 @@ def test_python_dash_m_subcheck_cli_entry_point():
     )
     assert r.returncode == 0, r.stderr
     assert "subcheck" in r.stdout
+
+
+# --- an empty --policy is not an absent one ----------------------------------
+
+# A token from a repository that no policy here was written to admit.
+OTHER_REPO = {
+    "iss": "https://token.actions.githubusercontent.com",
+    "aud": "sts.amazonaws.com",
+    "repository": "attacker/evil",
+}
+EMPTY_POLICY = "error: --policy was given an empty path"
+
+
+@pytest.mark.parametrize("path", ["", "  "], ids=["empty", "blank"])
+def test_an_empty_policy_path_exits_2_through_claims(tmp_path, capsys, path):
+    # Was: `if not args.policy` read "" as no --policy at all, so the CLI only
+    # decoded - it printed the claims and exited 0, and no policy checked them.
+    claims = tmp_path / "c.json"
+    claims.write_text(json.dumps(OTHER_REPO), encoding="utf-8")
+    assert main(["--claims", str(claims), "--policy", path]) == 2
+    out, err = capsys.readouterr()
+    assert out == "", "an empty --policy must not print the claims as a decode would"
+    assert EMPTY_POLICY in err
+
+
+def test_an_empty_policy_path_exits_2_through_token_stdin(make_jwt, monkeypatch, capsys):
+    # The Action's path: action.yml pipes the token into `--token -` and always
+    # passes `--policy "$SUBCHECK_POLICY"`, which is empty when its input is.
+    monkeypatch.setattr("sys.stdin", io.StringIO(make_jwt(OTHER_REPO)))
+    assert main(["--token", "-", "--policy", ""]) == 2
+    out, err = capsys.readouterr()
+    assert out == "", "an empty --policy must not print the claims as a decode would"
+    assert EMPTY_POLICY in err
+
+
+def test_an_empty_policy_path_exits_2_out_of_process(make_jwt):
+    # As action.yml runs it, `python -m subcheck`, so the empty argument goes
+    # through a real argv rather than a Python list.
+    src = Path(__file__).resolve().parent.parent / "src"
+    r = subprocess.run(
+        [sys.executable, "-m", "subcheck", "--token", "-", "--policy", ""],
+        input=make_jwt(OTHER_REPO),
+        capture_output=True,
+        text=True,
+        env={**os.environ, "PYTHONPATH": str(src)},
+    )
+    assert r.returncode == 2, r.stdout
+    assert r.stdout == ""
+    assert EMPTY_POLICY in r.stderr
+
+
+def test_leaving_policy_out_still_only_decodes(tmp_path, capsys):
+    # The control: decode-only is still there, for a --policy that is absent.
+    claims = tmp_path / "c.json"
+    claims.write_text(json.dumps(OTHER_REPO), encoding="utf-8")
+    assert main(["--claims", str(claims)]) == 0
+    assert "repository: attacker/evil" in capsys.readouterr().out

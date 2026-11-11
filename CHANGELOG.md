@@ -6,6 +6,8 @@ All notable changes are documented here. Format based on
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-11
+
 ### Security
 
 - **A policy operator with no value passed any token that carried the claim.** In

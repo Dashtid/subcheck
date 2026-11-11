@@ -31,6 +31,15 @@ All notable changes are documented here. Format based on
   the Action's `--token -` path alike. `claims: {}` did the same. Each is now rejected as a bad
   policy, exit `2`; a policy that means to check only the issuer and audience leaves `claims` out.
   Every published release from 0.2.0 through 0.5.0 has it.
+- **A rule with no operator at all was still a bare presence check.** `repository: {}` printed
+  "claim 'repository' satisfies present" and exited 0 for claims naming a different repository, and
+  inside a deploy policy that also pinned the issuer and audience it reported
+  `PASS (3 pass, 0 fail, 0 missing)`. `{}` is also what a serializer that drops null keys makes of
+  `{"equals": null}`, the very input the first entry above rejects. A presence check now has to be
+  asked for, as `{required: true}`, and a rule with neither an operator nor `required: true` is
+  rejected, exit `2`. Two shapes that used to load no longer do: `{}`, a presence check nothing
+  documented, and `{required: false}` with no operator, a rule that could not fail. Every published
+  release from 0.2.0 through 0.5.0 has it.
 
   Deliberately unchanged: `equals: ''` and `glob: ''` each match only an empty claim value. That
   is a real constraint - GitHub's documented example token carries `head_ref: ""` on a
@@ -74,12 +83,12 @@ All notable changes are documented here. Format based on
 
   Tests only; no behaviour change. 122 -> 135 tests, coverage still 100%.
 
-- `tests/test_policy_empty_operators.py` - 38 regression tests for the Security fixes above, 31 of
+- `tests/test_policy_empty_operators.py` - 43 regression tests for the Security fixes above, 36 of
   which fail against 0.5.0. The 7 that pass pin what must not change: the empty-string constraints,
   the explicit presence check, a policy of issuer and audience alone, and a control showing the
   same claims still fail a rule that has its value. `tests/test_docs_pins.py` now also loads every
   policy snippet in the README, because a stricter loader could start rejecting one with nothing to
-  notice. 156 -> 195 tests.
+  notice. 156 -> 200 tests.
 
 ### Fixed
 

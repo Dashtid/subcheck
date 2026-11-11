@@ -176,6 +176,17 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
             # bool("false") is True, so a quoted boolean silently made an
             # optional claim mandatory.
             raise ValueError(f"claim {name!r}: 'required' must be true or false, got {required!r}")
+        if spec.get("required") is not True and not any(op in spec for op in _OPERATORS):
+            # A rule with no operator at all is the same bare presence check a null
+            # operator was: `repository: {}` passed any token carrying the claim,
+            # and `{}` is what a serializer that drops null keys makes of
+            # `{equals: null}`. With `required: false` it could not fail at all.
+            # A presence check has to be asked for, as `required: true`.
+            raise ValueError(
+                f"claim {name!r}: the rule has no operator, so it would constrain nothing - "
+                f"give it one of equals, in, matches or glob, or write '{name}: "
+                "{required: true}' if the claim only has to be present"
+            )
         return ClaimRule(
             name=name,
             equals=spec.get("equals"),

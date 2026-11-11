@@ -205,13 +205,18 @@ Open follow-ups from the same pass:
   A review of the fix then asked it of `claims` itself, one line further down, and found the same
   fail-open: `data.get("claims") or {}` read `claims:` with no rules under it - and `[]`, `''`,
   `false`, `0` and `{}` - as "no claim rules", so a policy that set an issuer and audience checked
-  those two and passed every repository's token. Rejected on rc=2 as well.
+  those two and passed every repository's token. Rejected on rc=2 as well. The same review found
+  a rule with no operator at all still a bare presence check: `repository: {}` - what a serializer
+  that drops null keys makes of `{"equals": null}` - passed a different repository, and
+  `{required: false}` alone could not fail. The decision above already said a presence check is
+  written on purpose as `{required: true}`; now the loader enforces it, on rc=2.
   **The lesson worth keeping:** 0.4.1 validated every operator value *that was not `None`*, and
   `spec.get(op)` returns `None` for "absent" and for "present but empty" alike - so the one value
   every check skipped was the one that switched the rule off. A guard written as
   `if x is not None` has to ask what `None` means before it trusts it, and `x or default` answers
   that question for every falsy value at once, without asking. Ask it of every key the loader
-  reads, not only of the one in the bug report.
+  reads, not only of the one in the bug report - and ask what a rule means when none of its keys
+  is there at all.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

@@ -12,6 +12,11 @@ given `[]`, `''`, `false`, `0` or `{}` - it read as "no claim rules", so a polic
 that also set `issuer` and `audience` checked only those two and passed a token
 from any repository.
 
+A rule with no operator at all was the same presence check by another road.
+`repository: {}` - which is what a serializer that drops null keys makes of
+`{"equals": null}` - passed any token carrying the claim, and `{required: false}`
+alone could not fail. A presence check has to be asked for, as `{required: true}`.
+
 The empty values are decided by what the matcher does with them, not by how they
 look:
 
@@ -86,6 +91,20 @@ def test_a_null_operator_is_rejected_on_an_optional_rule_too():
     # as a presence check.
     with pytest.raises(ValueError, match="'equals' has no value"):
         load_policy({"claims": {"environment": {"equals": None, "required": False}}})
+
+
+# --- a rule with no operator at all ------------------------------------------
+
+
+@pytest.mark.parametrize("spec", [{}, {"required": False}], ids=["empty-mapping", "optional-only"])
+def test_a_rule_with_no_operator_is_rejected(spec):
+    # Was: `{}` a presence check, passing the same tokens a null operator did,
+    # and `{required: false}` a rule that could not fail at all.
+    with pytest.raises(ValueError) as excinfo:
+        load_policy({"claims": {"repository": spec}})
+    message = str(excinfo.value)
+    assert "claim 'repository': the rule has no operator" in message
+    assert "repository: {required: true}" in message
 
 
 @pytest.mark.parametrize("key", ["issuer", "audience"])
@@ -222,6 +241,25 @@ def test_cli_exits_2_on_claims_with_no_rules(tmp_path, capsys, suffix, policy_te
     assert _run(tmp_path, policy_text, suffix) == 2
     out, err = capsys.readouterr()
     assert expected in err
+    assert out == "", "a policy that was rejected must not print a verdict"
+
+
+@pytest.mark.parametrize(
+    ("suffix", "policy_text"),
+    [
+        (".yaml", "claims:\n  repository: {}\n"),
+        # What a serializer that drops null keys makes of {"equals": null}.
+        (".json", json.dumps({"claims": {"repository": {}}})),
+        # Was: PASS (3 pass, 0 fail, 0 missing), rc=0 - the deploy policy again.
+        (".yaml", ISS_AUD_YAML + "claims:\n  repository: {}\n"),
+    ],
+    ids=["yaml", "json", "deploy-policy"],
+)
+def test_cli_exits_2_on_a_rule_with_no_operator(tmp_path, capsys, suffix, policy_text):
+    # Was: "claim 'repository' satisfies present" and rc=0 for a different repository.
+    assert _run(tmp_path, policy_text, suffix) == 2
+    out, err = capsys.readouterr()
+    assert "claim 'repository': the rule has no operator" in err
     assert out == "", "a policy that was rejected must not print a verdict"
 
 

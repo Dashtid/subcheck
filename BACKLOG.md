@@ -251,9 +251,9 @@ Open follow-ups from the same pass:
   question of the CLI's own flags, where every other flag left empty already exited 2. The CLI
   now decodes only when `--policy` is absent, and the Action checks its input before it installs
   anything; CI runs the Action with an empty `policy` and requires the step to fail.
-  **The lesson is the one above, one layer out:** `if not x` cannot tell "absent" from "empty",
-  and an entry point that reads empty as absent hands the absent behaviour - here a decode that
-  always exits 0 - to whoever controls the empty value.
+  **The lesson is the empty-operator item's, one layer out:** `if not x` cannot tell "absent"
+  from "empty", and an entry point that reads empty as absent hands the absent behaviour - here a
+  decode that always exits 0 - to whoever controls the empty value.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

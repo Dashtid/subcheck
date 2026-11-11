@@ -104,6 +104,13 @@ def load_policy(data: dict) -> Policy:
         # The same nothing, spelled {}; rejected like `in: []`.
         raise ValueError("policy: 'claims' is empty - list the claim rules, or remove the key")
     for name, spec in claims.items():
+        if not isinstance(name, str) or not name:
+            # A YAML key need not be a string: `1:` is an int and `~:` is null, and
+            # neither names a claim in a JSON token. The text report then crashed
+            # on len(name) - a traceback on rc=1 - while --format json reported
+            # normally, and an optional rule under a null name could never fail.
+            # An empty name is a key left blank, not a claim.
+            raise ValueError(f"policy: claim names must be non-empty strings, got {name!r}")
         rules.append(_rule_from_spec(name, spec))
     if not rules:
         raise ValueError("policy is empty: define 'issuer', 'audience', or 'claims'")

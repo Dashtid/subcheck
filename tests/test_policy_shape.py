@@ -250,3 +250,29 @@ def test_unknown_keys_of_mixed_types_exit_2_through_the_cli(tmp_path, capsys):
     policy.write_text("claims:\n  repository: {1: a, b: c}\n", encoding="utf-8")
     assert main(["--claims", str(claims), "--policy", str(policy)]) == 2
     assert "claim 'repository': unknown rule keys [1, 'b']" in capsys.readouterr().err
+
+
+# --- claim names that are not strings ----------------------------------------
+
+
+@pytest.mark.parametrize("name", [1, None, True, ""], ids=["int", "null", "bool", "empty"])
+def test_a_claim_name_must_be_a_non_empty_string(name):
+    # Was: loaded. The text report crashed on len(name), --format json reported
+    # normally, and an optional rule under a null name could never fail.
+    expected = f"policy: claim names must be non-empty strings, got {name!r}"
+    with pytest.raises(ValueError, match=re.escape(expected)):
+        load_policy({"claims": {name: {"equals": "x"}}})
+
+
+def test_a_claim_name_that_is_not_a_string_exits_2_through_the_cli(tmp_path, capsys):
+    from subcheck.cli import main
+
+    claims = tmp_path / "c.json"
+    claims.write_text('{"repository": "acme/api"}', encoding="utf-8")
+    policy = tmp_path / "p.yaml"
+    # Was: TypeError from len(1) in the text report - a traceback on rc=1.
+    policy.write_text("claims:\n  1: {equals: x}\n", encoding="utf-8")
+    assert main(["--claims", str(claims), "--policy", str(policy)]) == 2
+    out, err = capsys.readouterr()
+    assert out == "", "a policy that was rejected must not print a verdict"
+    assert "policy: claim names must be non-empty strings, got 1" in err

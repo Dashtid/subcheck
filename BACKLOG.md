@@ -233,6 +233,9 @@ Open follow-ups from the same pass:
     past `re`'s limit (`OverflowError`, a traceback on rc=1 in every release), or groups nested a
     few hundred deep (`RecursionError`, which has reached rc=2 since 0.4.1 only because it is a
     `RuntimeError`, without naming the claim). Found by the next review of the release.
+  - A claim name that is not a non-empty string. `1:` or `~:` under `claims` loaded, and the text
+    report crashed on `len()` of the name - a traceback on rc=1 - while `--format json` reported
+    normally. Every published release has it. Found by the same review.
 - `[x]` **An empty `--policy` turned the gate into a decode - DONE 2026-11-11 (v0.5.1), rejected
   on rc=2 in the CLI and in `action.yml`.** `if not args.policy` in `cli.py` read `--policy ""`
   the way it read no `--policy` at all, so the CLI printed the claims and exited 0. `action.yml`

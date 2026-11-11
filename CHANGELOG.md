@@ -132,6 +132,14 @@ All notable changes are documented here. Format based on
   because it is a `RuntimeError`, with an error that named neither the claim nor the pattern.
   Both are now the "is not a valid regex" rejection that names the claim. Two tests in
   `tests/test_policy_shape.py`, both failing against 0.5.0; 212 -> 214 tests.
+- **A claim name that was not a string loaded, and the text report crashed on it.** A YAML key
+  need not be a string: under `claims`, `1:` names the int `1` and `~:` names null, and neither
+  can name a claim in a JSON token. The text report took `len()` of the name, so the `TypeError`
+  escaped as a traceback on exit 1, while `--format json` reported normally - and an optional rule
+  under a null name could never fail, so there it exited 0. An empty name, a key left blank,
+  reported its claim missing on exit 1. Each is now rejected as a bad policy, exit `2`. Every
+  published release has it. Five tests in `tests/test_policy_shape.py`, all failing against
+  0.5.0; 214 -> 219 tests.
 - **The customized-`sub` note blamed `job_workflow_ref` even when that was not the customization.**
   It was written when the only customized shapes subcheck decoded were the two `job_workflow_ref`
   ones, and it asserted that cause unconditionally. It now names what actually happened.

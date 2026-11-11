@@ -26,7 +26,8 @@ CLAIM_SEVERITY = {
 }
 DEFAULT_SEVERITY = "medium"
 
-_ALLOWED_KEYS = {"equals", "in", "matches", "glob", "required"}
+_OPERATORS = ("equals", "in", "matches", "glob")
+_ALLOWED_KEYS = {*_OPERATORS, "required"}
 _ALLOWED_TOP_KEYS = {"issuer", "audience", "claims"}
 
 
@@ -77,6 +78,12 @@ def load_policy(data: dict) -> Policy:
             f"policy: unknown top-level keys {sorted(unknown_top)} - claim rules "
             "belong under 'claims'; only 'issuer', 'audience' and 'claims' are read"
         )
+    for key in ("issuer", "audience"):
+        if key in data and data[key] is None:
+            # `issuer:` with nothing after it loads as null, and str(None) is
+            # 'None': every token then failed on rc=1, a broken policy wearing
+            # the gate-failure code.
+            raise ValueError(f"policy: {key!r} has no value - give it one, or remove the key")
     rules: list = []
     if "issuer" in data:
         rules.append(ClaimRule(name="iss", equals=str(data["issuer"])))
@@ -96,11 +103,27 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
     if isinstance(spec, str):
         return ClaimRule(name=name, equals=spec)
     if isinstance(spec, list):
+        if not spec:
+            # The shorthand reaches the same empty-`in` rule checked below.
+            raise ValueError(
+                f"claim {name!r}: an empty list (the shorthand for 'in') matches no value - "
+                "list the allowed values"
+            )
         return ClaimRule(name=name, one_of=list(spec))
     if isinstance(spec, dict):
         unknown = set(spec) - _ALLOWED_KEYS
         if unknown:
             raise ValueError(f"claim {name!r}: unknown rule keys {sorted(unknown)}")
+        for op in _OPERATORS:
+            if op in spec and spec[op] is None:
+                # `equals:` with nothing after it loads as null, which reads the
+                # same as an absent operator: a rule left with no operator is a
+                # bare presence check, and passed any token carrying the claim.
+                raise ValueError(
+                    f"claim {name!r}: {op!r} has no value, so it would constrain nothing - "
+                    f"give it one, or write '{name}: {{required: true}}' if the claim "
+                    "only has to be present"
+                )
         one_of = spec.get("in")
         if one_of is not None and not isinstance(one_of, list):
             # `in: production` (a one-item YAML list missing its '- ') became
@@ -108,12 +131,27 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
             raise ValueError(
                 f"claim {name!r}: 'in' must be a list of values, got {type(one_of).__name__}"
             )
+        if one_of == []:
+            # No value is a member of an empty list, so every token carrying the
+            # claim failed, on rc=1: a policy error reported as a finding.
+            raise ValueError(
+                f"claim {name!r}: 'in' is an empty list, which no value can match - "
+                "list the allowed values"
+            )
         matches = spec.get("matches")
         if matches is not None:
             if not isinstance(matches, str):
                 raise ValueError(
                     f"claim {name!r}: 'matches' must be a regex string, got "
                     f"{type(matches).__name__}"
+                )
+            if not matches:
+                # re.search('', s) succeeds on every string: the same presence
+                # check as a null operator, and the same fail-open.
+                raise ValueError(
+                    f"claim {name!r}: 'matches' is an empty pattern, which every value "
+                    f"matches - give it a regex, or write '{name}: {{required: true}}' if "
+                    "the claim only has to be present"
                 )
             try:
                 re.compile(matches)

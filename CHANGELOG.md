@@ -6,6 +6,26 @@ All notable changes are documented here. Format based on
 
 ## [Unreleased]
 
+### Security
+
+- **A policy operator with no value passed any token that carried the claim.** In
+  `repository: {equals: }` the operator is YAML for `null`, and a null operator read exactly like an
+  absent one, so the rule was left as a bare presence check and stopped checking the value it was
+  written to pin. Reproduced through the CLI against claims naming a different repository:
+  `PASS (1 pass, 0 fail, 0 missing)` with "claim 'repository' satisfies present" and exit 0, while
+  the same rule with a value failed them, exit 1. A deploy policy that also pinned the issuer and
+  audience passed the same claims just as cleanly. `in:`, `matches:` and `glob:` with no value
+  behaved the same way, and so did an empty `matches: ''`, because `re.search('', s)` matches
+  every string. Each is now rejected as a bad policy, exit `2`, with a message that names the
+  claim and the operator and shows how to ask for a presence check on purpose
+  (`claim: {required: true}`); the README's policy section says the same. Same class as the two
+  fail-opens 0.4.1 closed: the key was validated and its value never was. Every published release
+  from 0.2.0 through 0.5.0 has it.
+
+  Deliberately unchanged: `equals: ''` and `glob: ''` each match only an empty claim value. That
+  is a real constraint - GitHub's documented example token carries `head_ref: ""` on a
+  `workflow_dispatch` run - so neither is rejected, and neither reads as "no constraint".
+
 ### Added
 
 - **A wholly customized `sub` now decodes**, not just the `job_workflow_ref` shapes.
@@ -44,8 +64,23 @@ All notable changes are documented here. Format based on
 
   Tests only; no behaviour change. 122 -> 135 tests, coverage still 100%.
 
+- `tests/test_policy_empty_operators.py` - 30 regression tests for the Security fix above, 24 of
+  which fail against 0.5.0. The 6 that pass pin what must not change: the empty-string constraints,
+  the explicit presence check, and a control showing the same claims still fail a rule that has
+  its value. `tests/test_docs_pins.py` now also loads every policy snippet in the README, because a
+  stricter loader could start rejecting one with nothing to notice. 156 -> 187 tests.
+
 ### Fixed
 
+- **`in: []` failed every token that carried the claim, on exit 1.** No value is a member of an
+  empty list, so the rule could never pass, and the gate reported a mistake in the policy as a
+  finding - the confusion exit `2` exists to prevent. It now exits `2` as a bad policy, and so does
+  its shorthand, a claim given `[]`. One policy that used to run no longer loads:
+  `{in: [], required: false}`, which passed only while the claim was absent. Nothing documented
+  that as a way to forbid a claim, but it worked as one.
+- **`issuer:` or `audience:` with no value demanded the literal string `'None'`.** The shortcut
+  went through `str()`, so every token failed, on exit 1. Rejected on the exit-`2` path, like the
+  operators above.
 - **The customized-`sub` note blamed `job_workflow_ref` even when that was not the customization.**
   It was written when the only customized shapes subcheck decoded were the two `job_workflow_ref`
   ones, and it asserted that cause unconditionally. It now names what actually happened.

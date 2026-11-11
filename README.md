@@ -130,6 +130,17 @@ claims:
   ref: [refs/heads/main, refs/heads/release]
 ```
 
+**Every operator needs a value.** `equals:` with nothing after it is YAML for `null`, and a null
+operator is rejected as a bad policy (exit `2`) rather than read as no constraint, which would pass
+any token that carries the claim. So are `in: []`, which no value can match, and `matches: ''`,
+which every value matches. `equals: ''` and `glob: ''` are valid: each matches only an empty claim
+value. To require a claim without constraining its value, say so with `required` alone:
+
+```yaml
+claims:
+  environment: {required: true}    # present, with any value
+```
+
 **Matching notes:** `matches` uses `re.search`, so it is *not* anchored — `matches: pull_request`
 matches that substring anywhere in the value. Anchor with `^…$` when you mean the whole claim (the
 examples do). `equals`/`in` compare against the value's real JSON type, so quote a number you expect

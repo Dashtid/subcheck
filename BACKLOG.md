@@ -183,19 +183,29 @@ Open follow-ups from the same pass:
   tool's core job, not trust-condition simulation. The advisories describe what the token's subject
   omits; they do not evaluate a condition against it.
 
-- `[ ]` **An operator key with no value is read as no constraint - open, decision pending.** In a
-  rule such as `repository: {equals: }` (YAML `equals:` with nothing after it) the operator loads
-  as `null`, and `_rule_from_spec` (`src/subcheck/policy.py`, the `ClaimRule(...)` it returns)
-  passes a `None` `equals`/`matches`/`glob`/`in` straight through. A rule whose operators are all
-  `None` is a presence check, so the gate passes any token that carries the claim at all.
-  Reproduced through the CLI: claims naming a different repository report
+- `[x]` **An operator key with no value was read as no constraint - DONE 2026-11-11 (v0.5.1),
+  rejected on the rc=2 path.** In a rule such as `repository: {equals: }` (YAML `equals:` with
+  nothing after it) the operator loaded as `null`, and `_rule_from_spec` (`src/subcheck/policy.py`,
+  the `ClaimRule(...)` it returns) passed a `None` `equals`/`matches`/`glob`/`in` straight through.
+  A rule whose operators are all `None` is a presence check, so the gate passed any token that
+  carried the claim at all: claims naming a different repository reported
   `PASS (1 pass, 0 fail, 0 missing)` with "claim 'repository' satisfies present" and exit 0, while
-  the same rule with `equals: Dashtid/subcheck` fails them and exits 1. `matches:`, `glob:` and
-  `in:` with no value behave the same way. Same class as the two fail-opens v0.4.1 closed: the key
-  is accepted, and its empty value is never checked. The released 0.5.0 has it. Found in a review
-  on 2026-09-14, reproduced 2026-10-21 and again 2026-11-06. Not fixed yet: the choice is between
-  rejecting a null operator on the rc=2 bad-policy path and keeping it as a documented presence
-  check.
+  the same rule with `equals: Dashtid/subcheck` failed them and exited 1. Same class as the two
+  fail-opens v0.4.1 closed: the key was accepted, and its empty value never checked. Every
+  published release from 0.2.0 through 0.5.0 has it. Found in a review on 2026-09-14, reproduced
+  2026-10-21, 2026-11-06 and 2026-11-11, the last time just before the fix.
+  **Decision: reject it, rather than keep it as a documented presence check.** A presence check is
+  still there for anyone who means one, written on purpose as `{required: true}`, and the error
+  message says so. The empty values were settled by what the matcher does with them, not by how
+  they look: `matches: ''` matches every value (rejected - the same fail-open), `in: []` and its
+  `[]` shorthand match none (rejected - they failed every token on rc=1, a policy mistake reported
+  as a finding), and `equals: ''` and `glob: ''` match only an empty value, a real rule on a claim
+  like `head_ref`, so they stay valid. Asking the same question of the top-level shortcuts found
+  `issuer:`/`audience:` with no value turning into the string `'None'`; rejected too.
+  **The lesson worth keeping:** 0.4.1 validated every operator value *that was not `None`*, and
+  `spec.get(op)` returns `None` for "absent" and for "present but empty" alike - so the one value
+  every check skipped was the one that switched the rule off. A guard written as
+  `if x is not None` has to ask what `None` means before it trusts it.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

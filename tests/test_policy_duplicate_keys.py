@@ -183,6 +183,15 @@ def test_the_yaml_error_names_both_lines(tmp_path):
         load_policy_file(_policy(tmp_path, text))
 
 
+def test_a_key_repeated_through_an_alias_names_the_line_of_the_alias(tmp_path):
+    # An alias composes to the very node its anchor names, and that node's mark is the
+    # anchor's line - so reading the line off the key named line 2 twice.
+    text = "claims:\n  &k repository: {equals: acme/api}\n  *k : {required: true}\n"
+    expected = "the key 'repository' is repeated in one mapping (lines 2 and 3)"
+    with pytest.raises(ValueError, match=re.escape(expected)):
+        load_policy_file(_policy(tmp_path, text))
+
+
 def test_a_quoted_key_repeats_its_plain_spelling(tmp_path):
     # Both are the string 'repository', and YAML kept the second.
     text = 'claims:\n  repository: {equals: acme/api}\n  "repository": {required: true}\n'

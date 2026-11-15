@@ -381,6 +381,22 @@ def _load_yaml(text: str) -> Any:
         return keys
 
     class UniqueKeyLoader(yaml.SafeLoader):
+        def __init__(self, stream: str) -> None:
+            super().__init__(stream)
+            # The line each key of a mapping is written on, by mapping, in order.
+            self.key_lines: dict[int, list[int]] = {}
+
+        def compose_node(self, parent: yaml.Node | None, index: Any) -> yaml.Node | None:
+            # Read before the node is composed: an alias composes to the very node it names,
+            # whose mark is the anchor's line, so `*k : ...` would be reported where `&k`
+            # was written. A mapping composes each key with no index, and each value with
+            # its key as the index.
+            line = self.peek_event().start_mark.line + 1
+            node = super().compose_node(parent, index)
+            if isinstance(parent, yaml.MappingNode) and index is None:
+                self.key_lines.setdefault(id(parent), []).append(line)
+            return node
+
         def compose_mapping_node(self, anchor: Any) -> yaml.MappingNode:
             node = super().compose_mapping_node(anchor)
             # Checked as written, before SafeConstructor folds any `<<` merge into the
@@ -389,11 +405,11 @@ def _load_yaml(text: str) -> Any:
             # the mappings one `<<` merges both supply. (PyYAML's own composer has the
             # first check, commented out, here.)
             lines: dict = {}
-            for key_node, value_node in node.value:
+            key_lines = self.key_lines.pop(id(node), [])
+            for (key_node, value_node), line in zip(node.value, key_lines, strict=True):
                 key = key_of(key_node)
                 if key is None:
                     continue
-                line = key_node.start_mark.line + 1
                 if key in lines:
                     where = f" (lines {lines[key]} and {line})"
                     if key == _YAML_MERGE_KEY:

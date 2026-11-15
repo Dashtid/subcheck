@@ -17,6 +17,11 @@ A rule with no operator at all was the same presence check by another road.
 `{"equals": null}` - passed any token carrying the claim, and `{required: false}`
 alone could not fail. A presence check has to be asked for, as `{required: true}`.
 
+A claim with no rule at all - `repository:` with nothing under it, or with every
+operator under it commented out - was rejected all along, but as a rule that was not
+"a string, list, or mapping". It now says what is wrong in the words the operators
+use, and offers the same `{required: true}` way out.
+
 The empty values are decided by what the matcher does with them, not by how they
 look:
 
@@ -105,6 +110,16 @@ def test_a_rule_with_no_operator_is_rejected(spec):
         load_policy({"claims": {"repository": spec}})
     message = str(excinfo.value)
     assert "claim 'repository': the rule has no operator" in message
+    assert "repository: {required: true}" in message
+
+
+def test_a_claim_with_no_value_is_rejected_in_the_operators_words():
+    # Was: rc=2 already, but "claim 'repository': rule must be a string, list, or
+    # mapping" - nothing about the empty key, and no way out offered.
+    with pytest.raises(ValueError) as excinfo:
+        load_policy({"claims": {"repository": None}})
+    message = str(excinfo.value)
+    assert "claim 'repository' has no value, so it would constrain nothing" in message
     assert "repository: {required: true}" in message
 
 
@@ -200,6 +215,12 @@ def _run(tmp_path, policy_text, suffix=".yaml"):
             "claim 'repository': 'equals' has no value",
         ),
         ("claims:\n  repository: {equals: }\n", "claim 'repository': 'equals' has no value"),
+        # These two exited 2 already, with a message that did not say the key was empty.
+        ("claims:\n  repository:\n", "claim 'repository' has no value"),
+        (
+            "claims:\n  repository:\n    # equals: acme/payments-api\n",
+            "claim 'repository' has no value",
+        ),
         ("claims:\n  sub:\n    matches:\n", "claim 'sub': 'matches' has no value"),
         ("claims:\n  ref:\n    glob:\n", "claim 'ref': 'glob' has no value"),
         ("claims:\n  environment:\n    in:\n", "claim 'environment': 'in' has no value"),
@@ -214,6 +235,8 @@ def _run(tmp_path, policy_text, suffix=".yaml"):
     ids=[
         "deploy-policy",
         "equals-flow",
+        "claim-no-value",
+        "claim-operators-commented-out",
         "matches",
         "glob",
         "in",

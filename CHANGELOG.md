@@ -25,6 +25,16 @@ All notable changes are documented here. Format based on
   the other four pin the merge override, a key shared by two mappings, and two controls;
   225 -> 244 tests.
 
+### Fixed
+
+- **A claim with no value was rejected with a message that did not say so.** `claims:` followed by
+  `repository:` with nothing under it - or with every operator under it commented out - is YAML for
+  `null`. It already exited `2`, but as "rule must be a string, list, or mapping", which named
+  neither the empty key nor the way to ask for presence on purpose. It now gets the wording 0.5.1
+  gave an operator with no value - "claim 'repository' has no value, so it would constrain
+  nothing" - and the same `{required: true}` hint. The exit code is unchanged. Three tests in
+  `tests/test_policy_empty_operators.py`, all failing against 0.5.1; 244 -> 247 tests.
+
 ## [0.5.1] - 2026-11-11
 
 ### Security

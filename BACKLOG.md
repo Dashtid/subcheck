@@ -264,6 +264,9 @@ Open follow-ups from the same pass:
     that checks each mapping as it is composed - before a `<<` merge is folded in, so a key that
     overrides a merged one still loads - and JSON through an `object_pairs_hook`. Every published
     release has it.
+  - A claim key with no value (`repository:` alone, or with every operator under it commented
+    out) already exited 2, but as "rule must be a string, list, or mapping". It now gets 0.5.1's
+    "has no value, so it would constrain nothing" wording and the `{required: true}` hint.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

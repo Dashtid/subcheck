@@ -132,6 +132,15 @@ def load_policy(data: dict) -> Policy:
 
 
 def _rule_from_spec(name: str, spec) -> ClaimRule:
+    if spec is None:
+        # `repository:` with nothing under it - or with every line under it commented
+        # out - is YAML for null. It was always rejected, but as a rule that was not "a
+        # string, list, or mapping", which named neither the empty key nor the way to
+        # ask for presence on purpose.
+        raise ValueError(
+            f"claim {name!r} has no value, so it would constrain nothing - give it a rule, "
+            f"or write '{name}: {{required: true}}' if the claim only has to be present"
+        )
     if isinstance(spec, str):
         return ClaimRule(name=name, equals=spec)
     if isinstance(spec, list):

@@ -6,6 +6,8 @@ All notable changes are documented here. Format based on
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-15
+
 ### Security
 
 - **A key written twice in one policy mapping replaced the first without a word.** YAML and JSON

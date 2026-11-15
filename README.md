@@ -165,7 +165,8 @@ names, still does. Write that text out in one piece: split by a group, as in
 so `repository: {equals: acme/api}` followed by `repository: {required: true}` would drop the pin
 without a word and leave a presence check. A key repeated at any level - the top level, under
 `claims`, or inside a rule - is rejected as a bad policy (exit `2`), and the error names it. A key
-that overrides one merged in with YAML's `<<` is not a repeat.
+that overrides one merged in with YAML's `<<` is not a repeat, but `<<` is a key like any other:
+merge several mappings with one `<<: [*a, *b]`, not with a second `<<`.
 
 **Matching notes:** `matches` uses `re.search`, so it is *not* anchored — `matches: pull_request`
 matches that substring anywhere in the value. Anchor with `^…$` when you mean the whole claim (the

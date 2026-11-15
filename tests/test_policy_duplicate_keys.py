@@ -10,7 +10,10 @@ adding to it.
 
 A repeated key is now a bad policy at every level, rc=2, and the error names the key
 (and, for YAML, both lines). YAML's merge key is not a repeat: a mapping that overrides
-a key it merged in with `<<` is what a merge is for, and it still loads.
+a key it merged in with `<<` is what a merge is for, and it still loads. `<<` is a key
+itself, though, and a second one is not dropped but folded in after the first, so the
+later merge replaced the earlier one's rules just as silently; it is rejected like any
+other repeat, in every spelling YAML reads as the merge key.
 """
 
 import json
@@ -72,6 +75,46 @@ JSON_REPEATS = {
     ),
 }
 
+# `<<` written twice in one mapping: (policy text, the lines the error names). SafeConstructor
+# folds both merges in, the later one last, so on 0.5.1 every one of these passed the token
+# above - PASS (1 pass, 0 fail, 0 missing), rc=0.
+MERGE_REPEATS = {
+    # The pin became a presence check.
+    "claims-mapping": (
+        "claims:\n  <<: {repository: {equals: acme/api}}\n  <<: {repository: {required: true}}\n",
+        "2 and 3",
+    ),
+    # Two patterns meant to hold together read as the second alone.
+    "operator-mapping": (
+        "claims:\n  sub:\n    <<: {matches: '^repo:acme/api:'}\n"
+        "    <<: {matches: ':ref:refs/heads/main$'}\n",
+        "3 and 4",
+    ),
+    # The second merge's 'claims' replaced the first's.
+    "top-level": (
+        "<<: {claims: {repository: {equals: acme/api}}}\n"
+        "<<: {claims: {repository: {required: true}}}\n",
+        "1 and 2",
+    ),
+    # `!!merge` is the merge key's tag written out, and it makes a merge of any key it is
+    # on - `<<`, other text, or not even a scalar.
+    "tagged-merge-key": (
+        "claims:\n  !!merge <<: {repository: {equals: acme/api}}\n"
+        "  <<: {repository: {required: true}}\n",
+        "2 and 3",
+    ),
+    "tagged-other-text": (
+        "claims:\n  !!merge a: {repository: {equals: acme/api}}\n"
+        "  !!merge b: {repository: {required: true}}\n",
+        "2 and 3",
+    ),
+    "tagged-sequence": (
+        "claims:\n  ? !!merge [x]\n  : {repository: {equals: acme/api}}\n"
+        "  <<: {repository: {required: true}}\n",
+        "2 and 4",
+    ),
+}
+
 
 def _policy(tmp_path, text, suffix=".yaml"):
     path = tmp_path / f"policy{suffix}"
@@ -119,6 +162,32 @@ def test_a_repeat_inside_a_mapping_that_is_merged_in_is_rejected(tmp_path):
         load_policy_file(_policy(tmp_path, text))
 
 
+@pytest.mark.parametrize(("text", "lines"), MERGE_REPEATS.values(), ids=MERGE_REPEATS.keys())
+def test_a_repeated_merge_key_is_rejected_at_every_level(tmp_path, text, lines):
+    with pytest.raises(ValueError) as excinfo:
+        load_policy_file(_policy(tmp_path, text))
+    message = str(excinfo.value)
+    assert f"policy: the key '<<' is repeated in one mapping (lines {lines})" in message
+    # Both merges would be read, so "only the last" would not be true. It points at the
+    # form that merges several mappings instead.
+    assert "merge several mappings with one '<<: [*a, *b]'" in message
+
+
+def test_one_merge_of_several_mappings_still_loads(tmp_path):
+    # The form that error points at: one `<<`, with a list. A rule takes every key the
+    # mappings supply, and a key the rule writes itself still wins.
+    text = (
+        "claims:\n"
+        "  sub:\n    <<: [{matches: '^repo:acme/api:'}, &optional {required: false}]\n"
+        "  ref:\n    <<: [*optional, {glob: 'refs/heads/*'}]\n    required: true\n"
+    )
+    rules = load_policy_file(_policy(tmp_path, text)).rules
+    assert [(rule.name, rule.matches, rule.glob, rule.required) for rule in rules] == [
+        ("sub", "^repo:acme/api:", None, False),
+        ("ref", None, "refs/heads/*", True),
+    ]
+
+
 def test_a_key_overridden_after_a_merge_is_not_a_repeat(tmp_path):
     # YAML's merge key exists to be overridden: the rule takes the anchored one and
     # replaces its value. That is the author's stated intent, not a silent drop.
@@ -155,8 +224,11 @@ def _run(tmp_path, policy_text, suffix=".yaml"):
 @pytest.mark.parametrize(
     ("suffix", "text", "key"),
     [(".yaml", *case) for case in YAML_REPEATS.values()]
-    + [(".json", *case) for case in JSON_REPEATS.values()],
-    ids=[f"yaml-{level}" for level in YAML_REPEATS] + [f"json-{level}" for level in JSON_REPEATS],
+    + [(".json", *case) for case in JSON_REPEATS.values()]
+    + [(".yaml", text, "<<") for text, _ in MERGE_REPEATS.values()],
+    ids=[f"yaml-{level}" for level in YAML_REPEATS]
+    + [f"json-{level}" for level in JSON_REPEATS]
+    + [f"yaml-merge-{level}" for level in MERGE_REPEATS],
 )
 def test_cli_exits_2_on_a_repeated_key(tmp_path, capsys, suffix, text, key):
     # Was: rc=0 for every one of these, against a token from a different repository.

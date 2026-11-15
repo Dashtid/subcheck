@@ -293,6 +293,9 @@ def _constrains_nothing(name: str, op: str, pattern: str) -> str:
 _YAML_MERGE_TAG = "tag:yaml.org,2002:merge"
 _YAML_VALUE_TAG = "tag:yaml.org,2002:value"
 _YAML_STR_TAG = "tag:yaml.org,2002:str"
+# SafeConstructor merges at every key that carries the merge tag - `<<`, or anything written
+# with `!!merge` - so all of them are the one key `<<`.
+_YAML_MERGE_KEY = (_YAML_MERGE_TAG, "<<")
 
 
 def _repeated_key(key: object, where: str = "") -> ValueError:
@@ -302,6 +305,18 @@ def _repeated_key(key: object, where: str = "") -> ValueError:
     return ValueError(
         f"policy: the key {key!r} is repeated in one mapping{where} - only the last would be "
         "read, silently dropping the one before it; write each key once"
+    )
+
+
+def _repeated_merge_key(where: str) -> ValueError:
+    # A second `<<` is not dropped like other keys: SafeConstructor folds both merges in, in
+    # order, so wherever the two mappings share a key the later one's rule replaced the
+    # earlier one's without a word - `<<: {repository: {equals: acme/api}}` followed by
+    # `<<: {repository: {required: true}}` left a presence check.
+    return ValueError(
+        f"policy: the key '<<' is repeated in one mapping{where} - YAML would fold in both "
+        "merges, and a key they share would silently take the later one's rule; merge "
+        "several mappings with one '<<: [*a, *b]'"
     )
 
 
@@ -319,22 +334,34 @@ def _load_yaml(text: str) -> Any:
     """yaml.safe_load, except that a key repeated in one mapping is rejected."""
     import yaml
 
+    def key_of(key_node: yaml.Node) -> tuple | None:
+        # A key is its tag and its text, so `repository` and "repository" are one key. A key
+        # that is not a scalar is no dict key at all, and SafeConstructor rejects it - unless
+        # it carries the merge tag, which makes it a merge whatever it is written as.
+        if key_node.tag == _YAML_MERGE_TAG:
+            return _YAML_MERGE_KEY
+        if not isinstance(key_node, yaml.ScalarNode):
+            return None
+        return (_YAML_STR_TAG if key_node.tag == _YAML_VALUE_TAG else key_node.tag, key_node.value)
+
     class UniqueKeyLoader(yaml.SafeLoader):
         def compose_mapping_node(self, anchor: Any) -> yaml.MappingNode:
             node = super().compose_mapping_node(anchor)
             # Checked as written, before SafeConstructor folds any `<<` merge into the
             # node: a merged key that the mapping overrides is what a merge is for, not a
-            # repeat. A key is its tag and its text, so `repository` and "repository" are
-            # one key. (PyYAML's own composer has this check, commented out, here.)
+            # repeat - but `<<` itself is a key like any other. (PyYAML's own composer has
+            # this check, commented out, here.)
             lines: dict = {}
             for key_node, _ in node.value:
-                if not isinstance(key_node, yaml.ScalarNode) or key_node.tag == _YAML_MERGE_TAG:
+                key = key_of(key_node)
+                if key is None:
                     continue
-                tag = _YAML_STR_TAG if key_node.tag == _YAML_VALUE_TAG else key_node.tag
-                key = (tag, key_node.value)
                 line = key_node.start_mark.line + 1
                 if key in lines:
-                    raise _repeated_key(key_node.value, f" (lines {lines[key]} and {line})")
+                    where = f" (lines {lines[key]} and {line})"
+                    if key == _YAML_MERGE_KEY:
+                        raise _repeated_merge_key(where)
+                    raise _repeated_key(key_node.value, where)
                 lines[key] = line
             return node
 

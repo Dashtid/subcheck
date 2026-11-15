@@ -267,6 +267,16 @@ Open follow-ups from the same pass:
   - A claim key with no value (`repository:` alone, or with every operator under it commented
     out) already exited 2, but as "rule must be a string, list, or mapping". It now gets 0.5.1's
     "has no value, so it would constrain nothing" wording and the `{required: true}` hint.
+  - A `matches` or `glob` that every value matches - `'^'`, `'(?i)'`, `'(?x) '`, `'.*'`,
+    `glob: '*'` - loaded and passed a token from any repository on exit 0; 0.5.1 rejected only
+    `matches: ''`. Rejected now with the "would constrain nothing" message, found by trying the
+    pattern on an empty value, a single letter, a long `sub`-shaped value and each run of plain
+    text in the pattern itself - the last so that a negative lookahead such as `^(?!refs/pull/)`
+    still loads. Every pattern the README, examples, tests, fixture and pinned corpus carry still
+    loads, bar the corpus's bare `*`, which it grades dangerous. Known limit, fail-closed: a
+    negative lookahead whose excluded text is split by a group or an escape
+    (`^(?!refs/heads/(dev|test)/)`, `^(?!refs/pull/\d+/)`) is rejected too; written out in one
+    piece (`^(?!refs/heads/dev/|refs/heads/test/)`), it loads.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

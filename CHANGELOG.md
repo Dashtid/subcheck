@@ -24,6 +24,23 @@ All notable changes are documented here. Format based on
   0.5.1 has it. `tests/test_policy_duplicate_keys.py`: 19 tests, 15 of which fail against 0.5.1 -
   the other four pin the merge override, a key shared by two mappings, and two controls;
   225 -> 244 tests.
+- **A `matches` or `glob` that every value matches passed any token.** 0.5.1 rejected
+  `matches: ''`, because `re.search('', s)` succeeds on every string, but it was not the only such
+  pattern. `matches: '^'`, `'(?i)'`, `'(?x) '` and `'.*'`, and `glob: '*'`, each loaded and passed
+  claims naming a different repository: `PASS (1 pass, 0 fail, 0 missing)` and exit 0 through the
+  published 0.5.1 CLI, and `PASS (3 pass, 0 fail, 0 missing)` inside a deploy policy that also
+  pinned the issuer and audience. None of them is exotic - `'(?i)${VAR}'` with the variable unset
+  is `(?i)`. A pattern that matches every value is now rejected as a bad policy, exit `2`, with the
+  "would constrain nothing" message and the `{required: true}` hint, beside another operator or
+  on an optional rule as well. It is found by trying the pattern the way the validator does, on
+  values with nothing in common - an empty one, a single letter, and a long one shaped like a real
+  `sub` - and on each run of plain text in the pattern itself, so a negative lookahead such as
+  `^(?!refs/pull/)`, which rules out the text it names, still loads. Nothing this project ships
+  stops loading: the README's snippets, the examples, every pattern the tests load, the vendored
+  fixture's subjects written as patterns, and all 181 condition patterns in the pinned subvectors
+  corpus but its bare `*`, which the corpus itself grades dangerous. Every published release from
+  0.2.0 through 0.5.1 has it. `tests/test_policy_match_everything.py`: 33 tests, 20 of which fail
+  against 0.5.1 - the other 13 pin patterns that must keep loading; 247 -> 280 tests.
 
 ### Fixed
 

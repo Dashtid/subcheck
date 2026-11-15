@@ -141,14 +141,21 @@ rejected as a bad policy (exit `2`) rather than read as no constraint, which wou
 that carries the claim. So is a claim left with nothing under it - `repository:` alone, or with
 every line under it commented out - and a rule with neither an operator nor `required: true`, such
 as `repository: {}`, and so are `in: []`, which no value can match, an `in` item left as a bare
-`-`, and `matches: ''`, which every value matches. `equals: ''` and `glob: ''` are valid:
-each matches only an empty claim value. To require a claim without constraining its value, say so
-with `required` alone:
+`-`, and a `matches` or `glob` that every value matches: `matches: ''`, `'^'`, `'.*'` or `'(?i)'`
+(what `'(?i)${VAR}'` becomes when the variable is empty), and `glob: '*'`. `equals: ''` and
+`glob: ''` are valid: each matches only an empty claim value. To require a claim without
+constraining its value, say so with `required` alone:
 
 ```yaml
 claims:
   environment: {required: true}    # present, with any value
 ```
+
+Whether a pattern matches every value is tried, not guessed: on an empty value, a single letter, a
+long `sub`-shaped value, and each run of plain text in the pattern itself. A pattern that rules out
+any of them loads - so a negative lookahead such as `^(?!refs/pull/)`, which rules out the text it
+names, still does. Write that text out in one piece: split by a group, as in
+`refs/heads/(dev|test)/`, or by an escape such as `\d`, it is not read as plain text.
 
 The same goes for `claims` itself: with no rules under it, it is rejected rather than read as "no
 claim rules", which would leave only the issuer and audience checked. A policy that means to check

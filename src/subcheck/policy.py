@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -30,6 +32,15 @@ DEFAULT_SEVERITY = "medium"
 _OPERATORS = ("equals", "in", "matches", "glob")
 _ALLOWED_KEYS = {*_OPERATORS, "required"}
 _ALLOWED_TOP_KEYS = {"issuer", "audience", "claims"}
+
+# Values with nothing in common: an empty one, one letter, and a long one shaped like a
+# real `sub` - slashes, colons, dots, @ids, a percent-encoded colon. A `matches` or
+# `glob` that every one of them satisfies constrains nothing (see _matches_every_value).
+_UNRELATED_VALUES = (
+    "",
+    "x",
+    "repo:Sentinel-Org@10001/sentinel_repo.v2@20002:ref:refs/heads/release/2.0%3Arc-1",
+)
 
 
 @dataclass
@@ -217,11 +228,19 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
                 # traceback on rc=1, and groups nested a few hundred deep are a
                 # RecursionError, which reached rc=2 without naming the claim.
                 raise ValueError(f"claim {name!r}: 'matches' is not a valid regex: {exc}") from exc
+            if _matches_every_value(matches, lambda p, v: re.search(p, v) is not None):
+                # `^`, `(?i)`, `(?x) ` and `.*` are not empty, so the check above let
+                # them through, and each passed a token from any repository - `(?i)` is
+                # what '(?i)${VAR}' becomes when the variable is empty.
+                raise ValueError(_constrains_nothing(name, "matches", matches))
         glob = spec.get("glob")
         if glob is not None and not isinstance(glob, str):
             raise ValueError(
                 f"claim {name!r}: 'glob' must be a pattern string, got {type(glob).__name__}"
             )
+        if glob is not None and _matches_every_value(glob, lambda p, v: fnmatch.fnmatchcase(v, p)):
+            # `*` spans every character, '/' and ':' included, so it passed every value.
+            raise ValueError(_constrains_nothing(name, "glob", glob))
         required = spec.get("required", True)
         if not isinstance(required, bool):
             # bool("false") is True, so a quoted boolean silently made an
@@ -247,6 +266,26 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
             required=required,
         )
     raise ValueError(f"claim {name!r}: rule must be a string, list, or mapping")
+
+
+def _matches_every_value(pattern: str, match: Callable[[str, str], bool]) -> bool:
+    """Whether every value tried matches `pattern`, asked with the validator's own call.
+
+    The values are the unrelated ones above and each run of plain text in the pattern
+    itself: a negative lookahead such as `^(?!refs/pull/)` matches all the unrelated
+    ones, and rules out the text it names. A value the pattern rules out proves that it
+    constrains something, so the extra values can only keep a pattern, never reject one.
+    """
+    plain_text = re.findall(r"[\w/:@%. -]+", re.sub(r"\\([^\w\s])", r"\1", pattern))
+    return all(match(pattern, value) for value in (*_UNRELATED_VALUES, *plain_text))
+
+
+def _constrains_nothing(name: str, op: str, pattern: str) -> str:
+    return (
+        f"claim {name!r}: {op!r} {pattern!r} matches every value, so it would constrain "
+        f"nothing - give it a pattern that rules something out, or write '{name}: "
+        "{required: true}' if the claim only has to be present"
+    )
 
 
 # The tags YAML gives the merge key `<<` and the value key `=`. SafeConstructor folds a

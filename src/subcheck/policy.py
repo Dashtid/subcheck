@@ -6,6 +6,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 # Trust-boundary anchors are high severity; contextual claims default to medium.
 CLAIM_SEVERITY = {
@@ -239,6 +240,60 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
     raise ValueError(f"claim {name!r}: rule must be a string, list, or mapping")
 
 
+# The tags YAML gives the merge key `<<` and the value key `=`. SafeConstructor folds a
+# merge into its mapping and turns `=` into the string '=', so neither is read as written.
+_YAML_MERGE_TAG = "tag:yaml.org,2002:merge"
+_YAML_VALUE_TAG = "tag:yaml.org,2002:value"
+_YAML_STR_TAG = "tag:yaml.org,2002:str"
+
+
+def _repeated_key(key: object, where: str = "") -> ValueError:
+    # Both parsers keep the LAST of two equal keys and drop the first without a word:
+    # `repository: {equals: acme/api}` followed by `repository: {required: true}` left a
+    # presence check, and the gate passed a token from any repository.
+    return ValueError(
+        f"policy: the key {key!r} is repeated in one mapping{where} - only the last would be "
+        "read, silently dropping the one before it; write each key once"
+    )
+
+
+def _unique_json_keys(pairs: list) -> dict:
+    """An object_pairs_hook for json.loads that rejects a key repeated in one object."""
+    data: dict = {}
+    for key, value in pairs:
+        if key in data:
+            raise _repeated_key(key)
+        data[key] = value
+    return data
+
+
+def _load_yaml(text: str) -> Any:
+    """yaml.safe_load, except that a key repeated in one mapping is rejected."""
+    import yaml
+
+    class UniqueKeyLoader(yaml.SafeLoader):
+        def compose_mapping_node(self, anchor: Any) -> yaml.MappingNode:
+            node = super().compose_mapping_node(anchor)
+            # Checked as written, before SafeConstructor folds any `<<` merge into the
+            # node: a merged key that the mapping overrides is what a merge is for, not a
+            # repeat. A key is its tag and its text, so `repository` and "repository" are
+            # one key. (PyYAML's own composer has this check, commented out, here.)
+            lines: dict = {}
+            for key_node, _ in node.value:
+                if not isinstance(key_node, yaml.ScalarNode) or key_node.tag == _YAML_MERGE_TAG:
+                    continue
+                tag = _YAML_STR_TAG if key_node.tag == _YAML_VALUE_TAG else key_node.tag
+                key = (tag, key_node.value)
+                line = key_node.start_mark.line + 1
+                if key in lines:
+                    raise _repeated_key(key_node.value, f" (lines {lines[key]} and {line})")
+                lines[key] = line
+            return node
+
+    # A yaml.SafeLoader subclass - the linters accept only a Loader named SafeLoader.
+    return yaml.load(text, Loader=UniqueKeyLoader)  # noqa: S506  # nosec B506
+
+
 def load_policy_file(path: str | Path) -> Policy:
     """Load a policy from a .json, .yaml, or .yml file."""
     p = Path(path)
@@ -252,12 +307,13 @@ def load_policy_file(path: str | Path) -> Policy:
                 "or use a .json policy instead"
             ) from exc
         try:
-            data = yaml.safe_load(text)
+            data = _load_yaml(text)
         except yaml.YAMLError as exc:
             # YAMLError is not a ValueError (json.JSONDecodeError is), so an
             # unparseable YAML policy escaped the CLI's rc=2 handler and exited 1
             # - the "a claim did not match" code.
             raise ValueError(f"policy file {p} is not valid YAML: {exc}") from exc
     else:
-        data = json.loads(text)
+        # The hook sees each object's keys before a dict can keep only the last.
+        data = json.loads(text, object_pairs_hook=_unique_json_keys)
     return load_policy(data)

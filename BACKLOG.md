@@ -254,6 +254,16 @@ Open follow-ups from the same pass:
   **The lesson is the empty-operator item's, one layer out:** `if not x` cannot tell "absent"
   from "empty", and an entry point that reads empty as absent hands the absent behaviour - here a
   decode that always exits 0 - to whoever controls the empty value.
+- `[x]` **Follow-ups from the independent review of 0.5.1 - DONE 2026-11-15 (v0.5.2).** Each one
+  fails closed, and no valid policy changes behaviour.
+  - A key written twice in one mapping replaced the first. YAML and JSON parsers keep the last of
+    two equal keys, so `repository: {equals: acme/api}` followed by `repository: {required: true}`
+    became a presence check that passed a token from any repository on exit 0; a second `claims:`
+    dropped every rule under the first, and a second `matches` replaced the pattern beside it.
+    Rejected at every level now, rc=2, naming the key: YAML through a `yaml.SafeLoader` subclass
+    that checks each mapping as it is composed - before a `<<` merge is folded in, so a key that
+    overrides a merged one still loads - and JSON through an `object_pairs_hook`. Every published
+    release has it.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

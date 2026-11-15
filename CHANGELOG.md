@@ -6,6 +6,25 @@ All notable changes are documented here. Format based on
 
 ## [Unreleased]
 
+### Security
+
+- **A key written twice in one policy mapping replaced the first without a word.** YAML and JSON
+  parsers keep the last of two equal keys, so `repository: {equals: acme/api}` followed by
+  `repository: {required: true}` dropped the pin and left a presence check. Reproduced through the
+  published 0.5.1 CLI against claims naming a different repository:
+  `PASS (1 pass, 0 fail, 0 missing)` and exit 0, in YAML and in JSON alike. One level up, a second
+  `claims:` replaced every rule under the first (`PASS (3 pass, 0 fail, 0 missing)`, exit 0, with
+  only the issuer, audience and environment left to check). One level down, a second `matches`
+  replaced the pattern beside it instead of adding to it: `^repo:acme/api:` vanished, and
+  `repo:attacker/evil:ref:refs/heads/main` passed on `:ref:refs/heads/main$` alone. A repeated key
+  is now rejected at every level as a bad policy, exit `2`, with an error that names the key - and,
+  for YAML, both lines. YAML is read through a `yaml.SafeLoader` subclass that checks each mapping
+  as it is written, JSON through an `object_pairs_hook`. A key that overrides one merged in with
+  YAML's `<<` is not a repeat, and loads as before. Every published release from 0.2.0 through
+  0.5.1 has it. `tests/test_policy_duplicate_keys.py`: 19 tests, 15 of which fail against 0.5.1 -
+  the other four pin the merge override, a key shared by two mappings, and two controls;
+  225 -> 244 tests.
+
 ## [0.5.1] - 2026-11-11
 
 ### Security

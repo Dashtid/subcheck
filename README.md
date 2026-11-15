@@ -153,6 +153,12 @@ The same goes for `claims` itself: with no rules under it, it is rejected rather
 claim rules", which would leave only the issuer and audience checked. A policy that means to check
 only those two leaves `claims` out.
 
+**Write each key once.** YAML and JSON parsers keep only the last of two equal keys in a mapping,
+so `repository: {equals: acme/api}` followed by `repository: {required: true}` would drop the pin
+without a word and leave a presence check. A key repeated at any level - the top level, under
+`claims`, or inside a rule - is rejected as a bad policy (exit `2`), and the error names it. A key
+that overrides one merged in with YAML's `<<` is not a repeat.
+
 **Matching notes:** `matches` uses `re.search`, so it is *not* anchored — `matches: pull_request`
 matches that substring anywhere in the value. Anchor with `^…$` when you mean the whole claim (the
 examples do). `equals`/`in` compare against the value's real JSON type, so quote a number you expect

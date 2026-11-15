@@ -90,7 +90,9 @@ new/renamed/transferred repos on **2026-07-15**; name-based policies silently st
 
 - `[x]` **Set the GitHub pin** — done, and at slot **#2** (verified 2026-08-16), ahead of its gate.
 - `[ ]` Record the demo GIF/asciinema (a PR failing on `sub=...:pull_request`).
-- `[ ]` Coordinated burst *with subvectors* — **article leg dropped 2026-08-29** (the article
+- `[x]` Coordinated burst *with subvectors* - **closed 2026-11-15, will not run:** subvectors was
+  archived on 2026-10-11 and 0.7.0 is final, so there is no pair to launch; a subcheck-only launch
+  would be a new item. As it stood: **article leg dropped 2026-08-29** (the article
   programme is closed; the shipped artifact is the announcement). What remains, if it is ever worth
   the evening: Show HN -> one subreddit -> LinkedIn, all pointing at `pip install subcheck` and the
   subvectors corpus. Low priority by design — an installable package and a merged upstream PR are
@@ -129,8 +131,11 @@ Open follow-ups from the same pass:
 - `[x]` **subvectors half-immutable tolerance — FIXED upstream 2026-08-18.**
   `src/subvectors/github.py:62` now reads `owner_id is not None and repo_id is not None`, so the
   two grammars agree again. Nothing left to do here.
-- `[ ]` Re-vendor the subject fixtures if subvectors adds a malformed/asymmetric subject vector.
-  (Still not triggered for THIS form: subvectors added no one-sided-`@id` vector; its grammar test
+- `[x]` Re-vendor the subject fixtures if subvectors adds a malformed/asymmetric subject vector.
+  **Closed 2026-11-15 - it never can:** subvectors was archived on 2026-10-11 and 0.7.0 is final.
+  0.7.0 adds six GitHub subjects over the 0.6.0 pin, none of them a one-sided `@id`; a deliberate
+  pin bump still means re-deriving the fixture from `vectors/` (the pin comment in pyproject.toml).
+  Before that: (Still not triggered for THIS form: subvectors added no one-sided-`@id` vector; its grammar test
   covers the branch directly.) **A different form did fire it, 2026-09-02**: the 0.5.2 pin brought
   `repo:octo-org/octo-repo` - a subject with no `ref`, `environment` or event segment - and every
   one of the nine vendored subjects carried a context, so the optional-context branch had no

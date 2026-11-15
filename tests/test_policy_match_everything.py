@@ -16,6 +16,13 @@ keeps a negative lookahead such as `^(?!refs/pull/)`, or a deny rule on a bot su
 `dependabot[bot]` with its brackets escaped, which matches every unrelated value and
 rules out the text it names.
 
+The empty value is not tried on a claim GitHub never sends empty - `sub`, `repository`
+and the other trust-boundary anchors. A pattern that rules out only that value, such as
+`.+` or `glob: '?*'`, passed a token from any repository there all the same - PASS and
+rc=0 on 0.5.1 - one character away from the `.*` and `*` this release rejects. On
+`head_ref`, which is empty outside a pull request, the same pattern rules something out,
+and is kept.
+
 Nothing this project ships stops loading. The README's snippets and the example policies
 are held by test_docs_pins.py and test_examples.py; here, the vendored fixture's subjects
 written as patterns, and every condition pattern in the pinned subvectors corpus but one -
@@ -97,6 +104,62 @@ def test_it_is_rejected_on_an_optional_rule_too():
         load_policy({"claims": {"environment": {"glob": "*", "required": False}}})
 
 
+# --- a claim that is never empty ---------------------------------------------
+
+# Each rules out only the empty value, and passed every token on 0.5.1 on a claim that
+# GitHub never sends empty.
+MATCH_EVERY_NON_EMPTY = [
+    ("matches", ".+"),
+    ("matches", "."),
+    ("matches", r"\S"),
+    ("matches", r"[\s\S]"),
+    ("glob", "?*"),
+    ("glob", "*?"),
+]
+
+# The trust-boundary anchors: in every GitHub token, and never empty.
+TRUST_ANCHORS = [
+    "iss",
+    "aud",
+    "sub",
+    "repository",
+    "repository_owner",
+    "repository_id",
+    "repository_owner_id",
+    "job_workflow_ref",
+]
+
+
+def _non_empty_message(op, pattern, name):
+    return (
+        f"claim {name!r}: {op!r} {pattern!r} matches every non-empty value, and {name!r} is "
+        "never empty in a GitHub token, so it would constrain nothing"
+    )
+
+
+@pytest.mark.parametrize("name", ["repository", "sub"])
+@pytest.mark.parametrize(
+    ("op", "pattern"),
+    MATCH_EVERY_NON_EMPTY,
+    ids=[f"{op}:{pattern!r}" for op, pattern in MATCH_EVERY_NON_EMPTY],
+)
+def test_a_pattern_that_only_asks_for_a_value_is_rejected_on_a_never_empty_claim(name, op, pattern):
+    # Was: loaded, and "claim 'repository' satisfies ..." for a different repository.
+    with pytest.raises(ValueError) as excinfo:
+        load_policy({"claims": {name: {op: pattern}}})
+    message = str(excinfo.value)
+    assert _non_empty_message(op, pattern, name) in message
+    assert f"{name}: {{required: true}}" in message
+
+
+def test_every_trust_anchor_is_treated_as_never_empty():
+    # The set is read off the severity table; a claim moved out of it would quietly take
+    # `.+` again.
+    for name in TRUST_ANCHORS:
+        with pytest.raises(ValueError, match=re.escape(_non_empty_message("matches", ".+", name))):
+            load_policy({"claims": {name: {"matches": ".+"}}})
+
+
 # --- patterns that rule something out are kept -------------------------------
 
 
@@ -112,7 +175,8 @@ def test_it_is_rejected_on_an_optional_rule_too():
         ("matches", "^[^#]*$", "refs/heads/main", "Deploy #2"),
         ("matches", r"^\S*$", "production", "Deploy to production"),
         ("matches", r"^[\w./:@%-]*$", "refs/heads/release/2.0", "Deploy #2 [prod] + docs"),
-        # And these do not match it: a value has to be there.
+        # And these do not match it: a value has to be there - which rules something out
+        # on head_ref, empty outside a pull request, though not on a never-empty claim.
         ("matches", ".+", "feature-branch", ""),
         ("glob", "?*", "feature-branch", ""),
     ],
@@ -245,6 +309,26 @@ def test_cli_exits_2_on_a_pattern_that_matches_every_value(tmp_path, capsys, pol
     assert _run(tmp_path, policy_text) == 2
     out, err = capsys.readouterr()
     assert "matches every value, so it would constrain nothing" in err
+    assert out == "", "a policy that was rejected must not print a verdict"
+
+
+@pytest.mark.parametrize(
+    "policy_text",
+    [
+        "claims:\n  repository: {matches: '.+'}\n",
+        "claims:\n  repository: {glob: '?*'}\n",
+        "claims:\n  repository: {matches: '\\S'}\n",
+        "claims:\n  sub: {matches: '.+'}\n",
+        "claims:\n  sub: {glob: '?*'}\n",
+    ],
+    ids=["dot-plus", "glob-non-empty", "non-space", "sub-dot-plus", "sub-glob-non-empty"],
+)
+def test_cli_exits_2_on_a_pattern_that_matches_every_non_empty_value(tmp_path, capsys, policy_text):
+    # Was: PASS (1 pass, 0 fail, 0 missing) and rc=0 for every one of these, against a
+    # different repository.
+    assert _run(tmp_path, policy_text) == 2
+    out, err = capsys.readouterr()
+    assert "is never empty in a GitHub token, so it would constrain nothing" in err
     assert out == "", "a policy that was rejected must not print a verdict"
 
 

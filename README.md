@@ -142,9 +142,11 @@ that carries the claim. So is a claim left with nothing under it - `repository:`
 every line under it commented out - and a rule with neither an operator nor `required: true`, such
 as `repository: {}`, and so are `in: []`, which no value can match, an `in` item left as a bare
 `-`, and a `matches` or `glob` that every value matches: `matches: ''`, `'^'`, `'.*'` or `'(?i)'`
-(what `'(?i)${VAR}'` becomes when the variable is empty), and `glob: '*'`. `equals: ''` and
-`glob: ''` are valid: each matches only an empty claim value. To require a claim without
-constraining its value, say so with `required` alone:
+(what `'(?i)${VAR}'` becomes when the variable is empty), and `glob: '*'`. On a claim GitHub never
+sends empty - `sub`, `repository` and the other trust-boundary claims listed below - so is a pattern
+that rules out only an empty value, such as `matches: '.+'` or `'\S'`, or `glob: '?*'`.
+`equals: ''` and `glob: ''` are valid: each matches only an empty claim value. To require a claim
+without constraining its value, say so with `required` alone:
 
 ```yaml
 claims:
@@ -165,7 +167,8 @@ text it names, still does. Write that text out in one piece. Split by a group, a
 such as `\d`, it is not read as plain text, and the pattern is rejected as matching every value
 although it rules something out: `^(?!refs/heads/(main|master)$)` is rejected,
 `^(?!refs/heads/main$|refs/heads/master$)` loads. An allowlist that every one of those values
-happens to satisfy, such as `^[^~]*$`, is rejected the same way.
+happens to satisfy, such as `^[^~]*$`, is rejected the same way. On a claim that is never empty, the
+empty value is not tried.
 
 **Write each key once.** YAML and JSON parsers keep only the last of two equal keys in a mapping,
 so `repository: {equals: acme/api}` followed by `repository: {required: true}` would drop the pin

@@ -300,7 +300,11 @@ Open follow-ups from the same pass:
     (`^(?!refs/pull/)`), it loads. The same review found the limit missing from the changelog,
     which names it now. Second limit, fail-closed too: an allowlist that every value tried happens
     to satisfy - a negated class leaving out a character none of them holds, such as `^[^~]*$` -
-    is rejected as well.
+    is rejected as well. A second review of the release commits found one more way through:
+    `.+`, `\S` and glob `?*` rule out only an empty value, and `sub`, `repository` and the other
+    trust anchors are never empty, so each passed a token from any repository on exit 0. Those
+    claims are not tried with the empty value now; on `head_ref`, empty outside a pull request,
+    such a pattern still loads.
   - The 0.5.1 sdist carried the repository's tooling dotfiles - `.github/`,
     `.pre-commit-config.yaml`, `.editorconfig`, `.gitattributes`, `.markdownlint*` - 10 of its 53
     files. `[tool.hatch.build.targets.sdist]` leaves out every root-level dot-path now (hatchling

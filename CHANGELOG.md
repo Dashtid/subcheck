@@ -46,9 +46,14 @@ All notable changes are documented here. Format based on
   `sub` and one shaped like a workflow name, with spaces and punctuation - and on each run of plain
   text in the pattern itself, escaped punctuation read as the character it stands for, so a
   negative lookahead such as `^(?!refs/pull/)` or `^(?!dependabot\[bot\]$)`, which rules out the
-  text it names, still loads, and so does an allowlist such as `^\S*$`. Known limit, fail-closed:
-  some deny patterns that loaded in 0.5.1 exit `2` now - those whose excluded text is split by a
-  group, a character class, a repeat or an escape such as `\d`, as in
+  text it names, still loads, and so does an allowlist such as `^\S*$`. On a claim GitHub never
+  sends empty - `sub`, `repository` and the other trust-boundary claims - the empty value is not
+  tried, so a pattern that rules out only that value is rejected there too: `matches: '.+'`, `'.'`
+  or `'\S'`, and `glob: '?*'`, each passed claims naming a different repository on 0.5.1 just as
+  `'.*'` did, by `--claims` and by `--token -` alike; on `head_ref`, which is empty outside a pull
+  request, each still loads. Known limit, fail-closed: some deny patterns that loaded in 0.5.1
+  exit `2` now - those whose excluded text is split by a group, a character class, a repeat or an
+  escape such as `\d`, as in
   `^(?!refs/heads/(main|master)$)`, `^(?!refs/pull/[0-9]+/merge$)` or `^(?!refs/pull/\d+/)` - and
   written out in one piece, as `^(?!refs/heads/main$|refs/heads/master$)`, or cut back to the fixed
   prefix, as `^(?!refs/pull/)`, they load. An allowlist that every value tried happens to satisfy,
@@ -56,8 +61,8 @@ All notable changes are documented here. Format based on
   README's snippets, the examples, every pattern the tests load, the vendored fixture's subjects
   written as patterns, and all 181 condition patterns in the pinned subvectors corpus but its bare
   `*`, which the corpus itself grades dangerous. Every published release from 0.2.0 through 0.5.1
-  has it. `tests/test_policy_match_everything.py`: 43 tests, 21 of which fail against 0.5.1 - the
-  other 22 pin patterns that must keep loading; 271 -> 314 tests.
+  has it. `tests/test_policy_match_everything.py`: 61 tests, 39 of which fail against 0.5.1 - the
+  other 22 pin patterns that must keep loading; 271 -> 332 tests.
 
 ### Fixed
 

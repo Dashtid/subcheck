@@ -28,6 +28,10 @@ CLAIM_SEVERITY = {
     "actor": "medium",
 }
 DEFAULT_SEVERITY = "medium"
+# GitHub sends every trust-boundary anchor above in every token, and never empty. On those
+# claims a pattern that rules out only the empty value - `.+`, `\S`, glob `?*` - passes a
+# token from any repository just as `.*` does (see _matches_every_value).
+_NEVER_EMPTY = {name for name, level in CLAIM_SEVERITY.items() if level == "high"}
 
 _OPERATORS = ("equals", "in", "matches", "glob")
 _ALLOWED_KEYS = {*_OPERATORS, "required"}
@@ -37,7 +41,8 @@ _ALLOWED_TOP_KEYS = {"issuer", "audience", "claims"}
 # `sub` - slashes, colons, dots, @ids, a percent-encoded colon - and one shaped like a
 # workflow name, with the spaces and punctuation a `sub` never carries. None holds a
 # newline, which no claim value does either, so `^.*$` still matches all of them. A
-# `matches` or `glob` that every one of them satisfies constrains nothing (see
+# `matches` or `glob` that every one of them satisfies constrains nothing - and on a claim
+# in _NEVER_EMPTY, so does one that every one of them but the empty one satisfies (see
 # _matches_every_value).
 _UNRELATED_VALUES = (
     "",
@@ -232,19 +237,24 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
                 # traceback on rc=1, and groups nested a few hundred deep are a
                 # RecursionError, which reached rc=2 without naming the claim.
                 raise ValueError(f"claim {name!r}: 'matches' is not a valid regex: {exc}") from exc
-            if _matches_every_value(matches, lambda p, v: re.search(p, v) is not None):
+            if _matches_every_value(matches, _regex_match, never_empty=name in _NEVER_EMPTY):
                 # `^`, `(?i)`, `(?x) ` and `.*` are not empty, so the check above let
                 # them through, and each passed a token from any repository - `(?i)` is
-                # what '(?i)${VAR}' becomes when the variable is empty.
-                raise ValueError(_constrains_nothing(name, "matches", matches))
+                # what '(?i)${VAR}' becomes when the variable is empty. So did `.+` and
+                # `\S` on `repository`: they rule out only an empty value, which a
+                # trust anchor never has.
+                raise ValueError(_constrains_nothing(name, "matches", matches, _regex_match))
         glob = spec.get("glob")
         if glob is not None and not isinstance(glob, str):
             raise ValueError(
                 f"claim {name!r}: 'glob' must be a pattern string, got {type(glob).__name__}"
             )
-        if glob is not None and _matches_every_value(glob, lambda p, v: fnmatch.fnmatchcase(v, p)):
-            # `*` spans every character, '/' and ':' included, so it passed every value.
-            raise ValueError(_constrains_nothing(name, "glob", glob))
+        if glob is not None and _matches_every_value(
+            glob, _glob_match, never_empty=name in _NEVER_EMPTY
+        ):
+            # `*` spans every character, '/' and ':' included, so it passed every value;
+            # `?*` passed every value of a claim that is never empty.
+            raise ValueError(_constrains_nothing(name, "glob", glob, _glob_match))
         required = spec.get("required", True)
         if not isinstance(required, bool):
             # bool("false") is True, so a quoted boolean silently made an
@@ -272,7 +282,19 @@ def _rule_from_spec(name: str, spec) -> ClaimRule:
     raise ValueError(f"claim {name!r}: rule must be a string, list, or mapping")
 
 
-def _matches_every_value(pattern: str, match: Callable[[str, str], bool]) -> bool:
+def _regex_match(pattern: str, value: str) -> bool:
+    # The validator's own call for `matches`.
+    return re.search(pattern, value) is not None
+
+
+def _glob_match(pattern: str, value: str) -> bool:
+    # The validator's own call for `glob`.
+    return fnmatch.fnmatchcase(value, pattern)
+
+
+def _matches_every_value(
+    pattern: str, match: Callable[[str, str], bool], *, never_empty: bool = False
+) -> bool:
     """Whether every value tried matches `pattern`, asked with the validator's own call.
 
     The values are the unrelated ones above and each run of plain text in the pattern
@@ -281,16 +303,23 @@ def _matches_every_value(pattern: str, match: Callable[[str, str], bool]) -> boo
     the character it stands for, so a deny rule on the bot `dependabot[bot]` - its
     brackets escaped - is tried on that name, whole. A value the pattern rules out proves
     that it constrains something, so the extra values can only keep a pattern, never
-    reject one.
+    reject one. With `never_empty` the empty value is not tried: a claim that is never
+    empty cannot be ruled out by being empty, so `.+` constrains it no more than `.*`.
     """
     runs = re.findall(r"(?:\\[^\w\s]|[\w/:@%. -])+", pattern)
     plain_text = [re.sub(r"\\([^\w\s])", r"\1", run) for run in runs]
-    return all(match(pattern, value) for value in (*_UNRELATED_VALUES, *plain_text))
+    unrelated = [value for value in _UNRELATED_VALUES if value or not never_empty]
+    return all(match(pattern, value) for value in (*unrelated, *plain_text))
 
 
-def _constrains_nothing(name: str, op: str, pattern: str) -> str:
+def _constrains_nothing(name: str, op: str, pattern: str, match: Callable[[str, str], bool]) -> str:
+    # A pattern that the empty value fails got here only because the claim is never empty.
+    if match(pattern, ""):
+        every = "every value"
+    else:
+        every = f"every non-empty value, and {name!r} is never empty in a GitHub token"
     return (
-        f"claim {name!r}: {op!r} {pattern!r} matches every value, so it would constrain "
+        f"claim {name!r}: {op!r} {pattern!r} matches {every}, so it would constrain "
         f"nothing - give it a pattern that rules something out, or write '{name}: "
         "{required: true}' if the claim only has to be present"
     )

@@ -51,6 +51,14 @@ subcheck = "subcheck.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/subcheck"]
 
+# The sdist is the source a user builds from, not a copy of the repository: CI workflows,
+# pre-commit, editor and lint config stay out - every root-level dot-path, so a new one
+# does too. Everything else stays: src, tests and their fixtures, examples, scripts, the
+# docs, README, LICENSE, CHANGELOG, pyproject. hatchling adds .gitignore whatever this
+# says - it reads it to select files when a wheel is built from the sdist.
+[tool.hatch.build.targets.sdist]
+exclude = ["/.*"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"

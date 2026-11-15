@@ -255,7 +255,8 @@ Open follow-ups from the same pass:
   from "empty", and an entry point that reads empty as absent hands the absent behaviour - here a
   decode that always exits 0 - to whoever controls the empty value.
 - `[x]` **Follow-ups from the independent review of 0.5.1 - DONE 2026-11-15 (v0.5.2).** Each one
-  fails closed, and no valid policy changes behaviour.
+  fails closed, and no policy that constrains anything stops loading - bar the one known limit
+  under the third.
   - A key written twice in one mapping replaced the first. YAML and JSON parsers keep the last of
     two equal keys, so `repository: {equals: acme/api}` followed by `repository: {required: true}`
     became a presence check that passed a token from any repository on exit 0; a second `claims:`
@@ -277,6 +278,14 @@ Open follow-ups from the same pass:
     negative lookahead whose excluded text is split by a group or an escape
     (`^(?!refs/heads/(dev|test)/)`, `^(?!refs/pull/\d+/)`) is rejected too; written out in one
     piece (`^(?!refs/heads/dev/|refs/heads/test/)`), it loads.
+  - The 0.5.1 sdist carried the repository's tooling dotfiles - `.github/`,
+    `.pre-commit-config.yaml`, `.editorconfig`, `.gitattributes`, `.markdownlint*` - 10 of its 53
+    files. `[tool.hatch.build.targets.sdist]` leaves out every root-level dot-path now (hatchling
+    keeps `.gitignore`, which it needs to build the wheel from the sdist); the wheel's file list is
+    unchanged. **The 0.5.1 sdist stays on PyPI**: its extra files were already public in the
+    repository - every file in it is byte-identical to the `v0.5.1` tag, checked 2026-11-15
+    against the copy on PyPI (sha256 `6f2c9abed0f5...`) - so there is nothing to withdraw, and the
+    fix is forward, in 0.5.2.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

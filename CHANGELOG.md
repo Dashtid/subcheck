@@ -54,6 +54,16 @@ All notable changes are documented here. Format based on
 
 ### Changed
 
+- **The sdist no longer carries the repository's tooling.** 0.5.1's sdist shipped `.github/` (four
+  workflows and the Dependabot config), `.pre-commit-config.yaml`, `.editorconfig`,
+  `.gitattributes`, `.markdownlint.jsonc` and `.markdownlintignore` - 10 of its 53 files, none of
+  them needed to build, test or use the package. `[tool.hatch.build.targets.sdist]` now leaves out
+  every root-level dot-path, so a new one stays out too. src, tests and their fixtures, examples,
+  scripts, the docs, README, LICENSE, CHANGELOG and pyproject stay, and the test suite passes from
+  an unpacked sdist. hatchling keeps `.gitignore` in whatever the config says, because it reads it
+  to build the wheel from the sdist. The wheel's file list is unchanged. Nothing in the 0.5.1 sdist
+  was private - every file in it is byte-identical to the public repository at `v0.5.1` - so it
+  stays on PyPI, and the fix is forward.
 - `tests/test_docs_pins.py` loads each policy snippet in the README from a file, through the
   loader the CLI uses, so the repeated-key check above covers the snippets as well. It parsed them
   with `yaml.safe_load`, which keeps the last of two equal keys. Tests only.

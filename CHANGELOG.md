@@ -42,20 +42,22 @@ All notable changes are documented here. Format based on
   is `(?i)`. A pattern that matches every value is now rejected as a bad policy, exit `2`, with the
   "would constrain nothing" message and the `{required: true}` hint, beside another operator or
   on an optional rule as well. It is found by trying the pattern the way the validator does, on
-  values with nothing in common - an empty one, a single letter, and a long one shaped like a real
-  `sub` - and on each run of plain text in the pattern itself, escaped punctuation read as the
-  character it stands for, so a negative lookahead such as `^(?!refs/pull/)` or
-  `^(?!dependabot\[bot\]$)`, which rules out the text it names, still loads. Known limit,
-  fail-closed: some deny patterns that loaded in 0.5.1 exit `2` now - those whose excluded text is
-  split by a group, a character class, a repeat or an escape such as `\d`, as in
+  values with nothing in common - an empty one, a single letter, a long one shaped like a real
+  `sub` and one shaped like a workflow name, with spaces and punctuation - and on each run of plain
+  text in the pattern itself, escaped punctuation read as the character it stands for, so a
+  negative lookahead such as `^(?!refs/pull/)` or `^(?!dependabot\[bot\]$)`, which rules out the
+  text it names, still loads, and so does an allowlist such as `^\S*$`. Known limit, fail-closed:
+  some deny patterns that loaded in 0.5.1 exit `2` now - those whose excluded text is split by a
+  group, a character class, a repeat or an escape such as `\d`, as in
   `^(?!refs/heads/(main|master)$)`, `^(?!refs/pull/[0-9]+/merge$)` or `^(?!refs/pull/\d+/)` - and
   written out in one piece, as `^(?!refs/heads/main$|refs/heads/master$)`, or cut back to the fixed
-  prefix, as `^(?!refs/pull/)`, they load. Nothing this project ships stops loading: the README's
-  snippets, the examples, every pattern the tests load, the vendored fixture's subjects written as
-  patterns, and all 181 condition patterns in the pinned subvectors corpus but its bare `*`, which
-  the corpus itself grades dangerous. Every published release from 0.2.0 through 0.5.1 has it.
-  `tests/test_policy_match_everything.py`: 39 tests, 20 of which fail against 0.5.1 - the other 19
-  pin patterns that must keep loading; 271 -> 310 tests.
+  prefix, as `^(?!refs/pull/)`, they load. An allowlist that every value tried happens to satisfy,
+  such as `^[^~]*$`, is rejected the same way. Nothing this project ships stops loading: the
+  README's snippets, the examples, every pattern the tests load, the vendored fixture's subjects
+  written as patterns, and all 181 condition patterns in the pinned subvectors corpus but its bare
+  `*`, which the corpus itself grades dangerous. Every published release from 0.2.0 through 0.5.1
+  has it. `tests/test_policy_match_everything.py`: 43 tests, 21 of which fail against 0.5.1 - the
+  other 22 pin patterns that must keep loading; 271 -> 314 tests.
 
 ### Fixed
 

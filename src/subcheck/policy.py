@@ -33,13 +33,17 @@ _OPERATORS = ("equals", "in", "matches", "glob")
 _ALLOWED_KEYS = {*_OPERATORS, "required"}
 _ALLOWED_TOP_KEYS = {"issuer", "audience", "claims"}
 
-# Values with nothing in common: an empty one, one letter, and a long one shaped like a
-# real `sub` - slashes, colons, dots, @ids, a percent-encoded colon. A `matches` or
-# `glob` that every one of them satisfies constrains nothing (see _matches_every_value).
+# Values with nothing in common: an empty one, one letter, a long one shaped like a real
+# `sub` - slashes, colons, dots, @ids, a percent-encoded colon - and one shaped like a
+# workflow name, with the spaces and punctuation a `sub` never carries. None holds a
+# newline, which no claim value does either, so `^.*$` still matches all of them. A
+# `matches` or `glob` that every one of them satisfies constrains nothing (see
+# _matches_every_value).
 _UNRELATED_VALUES = (
     "",
     "x",
     "repo:Octo-Org@10001/octo_repo.v2@20002:ref:refs/heads/release/2.0%3Arc-1",
+    "Deploy #2 [prod] + docs",
 )
 
 

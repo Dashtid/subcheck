@@ -8,12 +8,13 @@ variable left empty is `(?i)`.
 
 Whether a pattern constrains anything is asked the way the validator asks it - with
 `re.search` and `fnmatch.fnmatchcase` - of values that have nothing in common: an empty
-one, one letter, and a long one shaped like a real `sub`, plus each run of plain text in
-the pattern itself, escaped punctuation read as the character it stands for. A pattern
-that rules out any of them constrains something and is kept, so the extra values can only
-keep a pattern, never reject one. They are what keeps a negative lookahead such as
-`^(?!refs/pull/)`, or a deny rule on a bot such as `dependabot[bot]` with its brackets
-escaped, which matches every unrelated value and rules out the text it names.
+one, one letter, a long one shaped like a real `sub` and one shaped like a workflow name,
+plus each run of plain text in the pattern itself, escaped punctuation read as the
+character it stands for. A pattern that rules out any of them constrains something and
+is kept, so the extra values can only keep a pattern, never reject one. They are what
+keeps a negative lookahead such as `^(?!refs/pull/)`, or a deny rule on a bot such as
+`dependabot[bot]` with its brackets escaped, which matches every unrelated value and
+rules out the text it names.
 
 Nothing this project ships stops loading. The README's snippets and the example policies
 are held by test_docs_pins.py and test_examples.py; here, the vendored fixture's subjects
@@ -58,6 +59,9 @@ MATCH_EVERYTHING = [
     # A deny pattern that lost its anchor: it fails at 0 and matches one character on.
     ("matches", "(?!pull_request)"),
     ("glob", "**"),
+    # Anchored at both ends, it still matches every value that holds no newline - and no
+    # claim value does, so no value tried may hold one either.
+    ("matches", "^.*$"),
 ]
 
 
@@ -103,11 +107,25 @@ def test_it_is_rejected_on_an_optional_rule_too():
         ("matches", "^$", "", "feature-branch"),
         ("matches", "^[0-9]*$", "456789", "acme/payments-api"),
         ("matches", "^[^@]*$", "repo:acme/api:ref:refs/heads/main", "repo:acme@1/api@2:ref:x"),
+        # Allowlists that a `sub` satisfies too: only a value with spaces and other
+        # punctuation, shaped like a workflow name, shows that they rule something out.
+        ("matches", "^[^#]*$", "refs/heads/main", "Deploy #2"),
+        ("matches", r"^\S*$", "production", "Deploy to production"),
+        ("matches", r"^[\w./:@%-]*$", "refs/heads/release/2.0", "Deploy #2 [prod] + docs"),
         # And these do not match it: a value has to be there.
         ("matches", ".+", "feature-branch", ""),
         ("glob", "?*", "feature-branch", ""),
     ],
-    ids=["empty-only", "digits-only", "legacy-subject-only", "non-empty", "glob-non-empty"],
+    ids=[
+        "empty-only",
+        "digits-only",
+        "legacy-subject-only",
+        "no-hash",
+        "no-whitespace",
+        "allowlisted-characters",
+        "non-empty",
+        "glob-non-empty",
+    ],
 )
 def test_a_pattern_that_rules_out_a_value_is_kept(op, pattern, passes, fails):
     policy = load_policy({"claims": {"head_ref": {op: pattern}}})

@@ -255,8 +255,9 @@ Open follow-ups from the same pass:
   from "empty", and an entry point that reads empty as absent hands the absent behaviour - here a
   decode that always exits 0 - to whoever controls the empty value.
 - `[x]` **Follow-ups from the independent review of 0.5.1 - DONE 2026-11-15 (v0.5.2).** Each one
-  fails closed, and no policy that constrains anything stops loading - bar the one known limit
-  under the third.
+  fails closed. A few policies that do constrain something are rejected as well - the two known
+  limits under the third - though nothing this project ships, and nothing in the pinned corpus
+  that constrains anything, is among them.
   - A key written twice in one mapping replaced the first. YAML and JSON parsers keep the last of
     two equal keys, so `repository: {equals: acme/api}` followed by `repository: {required: true}`
     became a presence check that passed a token from any repository on exit 0; a second `claims:`
@@ -276,20 +277,25 @@ Open follow-ups from the same pass:
   - A `matches` or `glob` that every value matches - `'^'`, `'(?i)'`, `'(?x) '`, `'.*'`,
     `glob: '*'` - loaded and passed a token from any repository on exit 0; 0.5.1 rejected only
     `matches: ''`. Rejected now with the "would constrain nothing" message, found by trying the
-    pattern on an empty value, a single letter, a long `sub`-shaped value and each run of plain
-    text in the pattern itself - the last so that a negative lookahead such as `^(?!refs/pull/)`
-    still loads. Escaped punctuation stays in its run, read as the character it stands for: the
-    first cut broke a run at the backslash, so deny rules on a bot `actor` that loaded in 0.5.1 -
+    pattern on an empty value, a single letter, a long `sub`-shaped value, one shaped like a
+    workflow name (`Deploy #2 [prod] + docs`) and each run of plain text in the pattern itself -
+    the last so that a negative lookahead such as `^(?!refs/pull/)` still loads. Escaped
+    punctuation stays in its run, read as the character it stands for: the first cut broke a run
+    at the backslash, so deny rules on a bot `actor` that loaded in 0.5.1 -
     `^(?!dependabot\[bot\]$)`, `^(?!.*\[bot\]$)`, `(?<!\[bot\])$` - were rejected as matching
-    every value. Caught by the review of the release commits. Every pattern the README, examples,
-    tests, fixture and pinned corpus carry still loads, bar the corpus's bare `*`, which it grades
-    dangerous. Known limit, fail-closed: a negative lookahead whose excluded text is split by a
-    group, a character class, a repeat or an escape such as `\d` (`^(?!refs/heads/(dev|test)/)`,
-    `^(?!refs/pull/[0-9]+/merge$)`, `^(?!refs/pull/.*/merge$)`, `^(?!refs/pull/\d+/)`) is
-    rejected too, though it loaded in 0.5.1; written out in one piece
+    every value. Caught by the review of the release commits, which also found allowlists that a
+    `sub` satisfies too - `^[^#]*$`, `^\S*$`, `^[\w./:@%-]*$` - rejected, though each rules out a
+    value with spaces or other punctuation; the workflow-name value is there for them. Every
+    pattern the README, examples, tests, fixture and pinned corpus carry still loads, bar the
+    corpus's bare `*`, which it grades dangerous. Known limit, fail-closed: a negative lookahead
+    whose excluded text is split by a group, a character class, a repeat or an escape such as `\d`
+    (`^(?!refs/heads/(dev|test)/)`, `^(?!refs/pull/[0-9]+/merge$)`, `^(?!refs/pull/.*/merge$)`,
+    `^(?!refs/pull/\d+/)`) is rejected too, though it loaded in 0.5.1; written out in one piece
     (`^(?!refs/heads/dev/|refs/heads/test/)`), or cut back to its fixed prefix
     (`^(?!refs/pull/)`), it loads. The same review found the limit missing from the changelog,
-    which names it now.
+    which names it now. Second limit, fail-closed too: an allowlist that every value tried happens
+    to satisfy - a negated class leaving out a character none of them holds, such as `^[^~]*$` -
+    is rejected as well.
   - The 0.5.1 sdist carried the repository's tooling dotfiles - `.github/`,
     `.pre-commit-config.yaml`, `.editorconfig`, `.gitattributes`, `.markdownlint*` - 10 of its 53
     files. `[tool.hatch.build.targets.sdist]` leaves out every root-level dot-path now (hatchling

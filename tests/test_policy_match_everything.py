@@ -10,11 +10,12 @@ Whether a pattern constrains anything is asked the way the validator asks it - w
 `re.search` and `fnmatch.fnmatchcase` - of values that have nothing in common: an empty
 one, one letter, a long one shaped like a real `sub` and one shaped like a workflow name,
 plus each run of plain text in the pattern itself, escaped punctuation read as the
-character it stands for. A pattern that rules out any of them constrains something and
-is kept, so the extra values can only keep a pattern, never reject one. They are what
-keeps a negative lookahead such as `^(?!refs/pull/)`, or a deny rule on a bot such as
-`dependabot[bot]` with its brackets escaped, which matches every unrelated value and
-rules out the text it names.
+character it stands for, and any other escape or a group opener read as syntax that ends
+a run. A pattern that rules out any of them constrains something and is kept, so the
+extra values can only keep a pattern, never reject one. They are what keeps a negative
+lookahead such as `^(?!refs/pull/)`, or a deny rule on a bot such as `dependabot[bot]`
+with its brackets escaped, which matches every unrelated value and rules out the text it
+names.
 
 The empty value is not tried on a claim GitHub never sends empty - `sub`, `repository`
 and the other trust-boundary anchors. A pattern that rules out only that value, such as
@@ -213,6 +214,14 @@ def test_a_pattern_that_rules_out_a_value_is_kept(op, pattern, passes, fails):
         (r"^(?!.*\[bot\]$)", "dependabot[bot]"),
         (r"(?<!\[bot\])$", "github-actions[bot]"),
         (r"^(?!.*\+)", "refs/heads/a+b"),
+        # Text beside a letter escape or a group opener. Each loaded on 0.5.1, and was
+        # rejected while its runs were read one character at a time, which stuck the escape's
+        # letter or the opener's colon to the text: 'bdebug', ':refs/pull/'.
+        (r"^(?!.*\bdebug\b)", "refs/heads/debug"),
+        (r"(?i)^(?!.*\bwip\b)", "refs/heads/WIP"),
+        (r"^(?!\Adependabot)", "dependabot/pip/requests-2.32.0"),
+        (r"^(?!(?:refs/pull/))", "refs/pull/42/merge"),
+        (r"^(?!(?i:dependabot\[bot\])$)", "Dependabot[bot]"),
     ],
 )
 def test_a_negative_lookahead_is_kept(pattern, excluded):

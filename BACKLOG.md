@@ -304,7 +304,11 @@ Open follow-ups from the same pass:
     `.+`, `\S` and glob `?*` rule out only an empty value, and `sub`, `repository` and the other
     trust anchors are never empty, so each passed a token from any repository on exit 0. Those
     claims are not tried with the empty value now; on `head_ref`, empty outside a pull request,
-    such a pattern still loads.
+    such a pattern still loads. The same review found the runs still read one character at a time,
+    so the letter of an escape or the colon of a group opener stuck to the text beside it -
+    `^(?!.*\bdebug\b)` was tried on `bdebug`, `^(?!(?:refs/pull/))` on `:refs/pull/` - and deny
+    rules that loaded in 0.5.1 were rejected as matching every value. Escapes are read as pairs
+    now, and group openers as syntax.
   - The 0.5.1 sdist carried the repository's tooling dotfiles - `.github/`,
     `.pre-commit-config.yaml`, `.editorconfig`, `.gitattributes`, `.markdownlint*` - 10 of its 53
     files. `[tool.hatch.build.targets.sdist]` leaves out every root-level dot-path now (hatchling

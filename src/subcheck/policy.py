@@ -298,18 +298,48 @@ def _matches_every_value(
     """Whether every value tried matches `pattern`, asked with the validator's own call.
 
     The values are the unrelated ones above and each run of plain text in the pattern
-    itself: a negative lookahead such as `^(?!refs/pull/)` matches all the unrelated
-    ones, and rules out the text it names. Escaped punctuation stays in its run, read as
-    the character it stands for, so a deny rule on the bot `dependabot[bot]` - its
-    brackets escaped - is tried on that name, whole. A value the pattern rules out proves
-    that it constrains something, so the extra values can only keep a pattern, never
-    reject one. With `never_empty` the empty value is not tried: a claim that is never
-    empty cannot be ruled out by being empty, so `.+` constrains it no more than `.*`.
+    itself (see _plain_text): a negative lookahead such as `^(?!refs/pull/)` matches all
+    the unrelated ones and rules out the text it names, so that text is tried too - and a
+    deny rule on the bot `dependabot[bot]`, its brackets escaped, is tried on that name,
+    whole. A value the pattern rules out proves that it constrains something, so the extra
+    values can only keep a pattern, never reject one. With `never_empty` the empty value
+    is not tried: a claim that is never empty cannot be ruled out by being empty, so `.+`
+    constrains it no more than `.*`.
     """
-    runs = re.findall(r"(?:\\[^\w\s]|[\w/:@%. -])+", pattern)
-    plain_text = [re.sub(r"\\([^\w\s])", r"\1", run) for run in runs]
     unrelated = [value for value in _UNRELATED_VALUES if value or not never_empty]
-    return all(match(pattern, value) for value in (*unrelated, *plain_text))
+    return all(match(pattern, value) for value in (*unrelated, *_plain_text(pattern)))
+
+
+# One token of a pattern: an escape - a backslash and the character after it - a group
+# opener with or without flags, such as `(?:` or `(?i:`, or any other single character.
+_PATTERN_TOKEN = re.compile(r"\\.|\(\?[aiLmsux-]*:|.", re.S)
+
+
+def _plain_text(pattern: str) -> list[str]:
+    """Each run of plain text in `pattern`: letters, digits, spaces and `_/:@%.-`.
+
+    Escaped punctuation stays in its run, read as the character it stands for. Any other
+    escape ends the run, because it stands for no one character, and so does a group
+    opener, which is syntax like a bare `(`.
+    """
+    # Read one character at a time, the letter of an escape such as `\b` or `\A`, and the
+    # colon of `(?:`, stuck to the text beside it: `^(?!.*\bdebug\b)` was tried on
+    # 'bdebug' and `^(?!(?:refs/pull/))` on ':refs/pull/', and as neither is the text
+    # the pattern rules out, both were rejected as matching every value.
+    runs: list[str] = []
+    run = ""
+    for token in _PATTERN_TOKEN.findall(pattern):
+        if len(token) == 2 and re.fullmatch(r"[^\w\s]", token[1]):
+            run += token[1]  # an escape is the only two-character token
+        elif re.fullmatch(r"[\w/:@%. -]", token):
+            run += token
+        else:
+            if run:
+                runs.append(run)
+            run = ""
+    if run:
+        runs.append(run)
+    return runs
 
 
 def _constrains_nothing(name: str, op: str, pattern: str, match: Callable[[str, str], bool]) -> str:

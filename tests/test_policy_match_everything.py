@@ -9,10 +9,11 @@ variable left empty is `(?i)`.
 Whether a pattern constrains anything is asked the way the validator asks it - with
 `re.search` and `fnmatch.fnmatchcase` - of values that have nothing in common: an empty
 one, one letter, and a long one shaped like a real `sub`, plus each run of plain text in
-the pattern itself. A pattern that rules out any of them constrains something and is
-kept, so the extra values can only keep a pattern, never reject one. They are what keeps
-a negative lookahead such as `^(?!refs/pull/)`, which matches every unrelated value and
-rules out the text it names.
+the pattern itself, escaped punctuation read as the character it stands for. A pattern
+that rules out any of them constrains something and is kept, so the extra values can only
+keep a pattern, never reject one. They are what keeps a negative lookahead such as
+`^(?!refs/pull/)`, or a deny rule on a bot such as `dependabot[bot]` with its brackets
+escaped, which matches every unrelated value and rules out the text it names.
 
 Nothing this project ships stops loading. The README's snippets and the example policies
 are held by test_docs_pins.py and test_examples.py; here, the vendored fixture's subjects
@@ -122,6 +123,14 @@ def test_a_pattern_that_rules_out_a_value_is_kept(op, pattern, passes, fails):
         ("^(?!pull_request_target$)", "pull_request_target"),
         ("(?<!:pull_request)$", "repo:acme/api:pull_request"),
         ("^(?!refs/heads/dev/|refs/heads/test/)", "refs/heads/test/x"),
+        # Deny rules on `actor`, whose bot names need their brackets escaped. Each loaded on
+        # 0.5.1, and was rejected while a run of plain text stopped at the backslash.
+        (r"^(?!dependabot\[bot\]$)", "dependabot[bot]"),
+        (r"^(?!github-actions\[bot\]$)", "github-actions[bot]"),
+        (r"^(?!renovate\[bot\]$|dependabot\[bot\]$)", "renovate[bot]"),
+        (r"^(?!.*\[bot\]$)", "dependabot[bot]"),
+        (r"(?<!\[bot\])$", "github-actions[bot]"),
+        (r"^(?!.*\+)", "refs/heads/a+b"),
     ],
 )
 def test_a_negative_lookahead_is_kept(pattern, excluded):

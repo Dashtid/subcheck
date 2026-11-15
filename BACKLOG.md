@@ -278,11 +278,14 @@ Open follow-ups from the same pass:
     `matches: ''`. Rejected now with the "would constrain nothing" message, found by trying the
     pattern on an empty value, a single letter, a long `sub`-shaped value and each run of plain
     text in the pattern itself - the last so that a negative lookahead such as `^(?!refs/pull/)`
-    still loads. Every pattern the README, examples, tests, fixture and pinned corpus carry still
-    loads, bar the corpus's bare `*`, which it grades dangerous. Known limit, fail-closed: a
-    negative lookahead whose excluded text is split by a group or an escape
-    (`^(?!refs/heads/(dev|test)/)`, `^(?!refs/pull/\d+/)`) is rejected too; written out in one
-    piece (`^(?!refs/heads/dev/|refs/heads/test/)`), it loads.
+    still loads. Escaped punctuation stays in its run, read as the character it stands for: the
+    first cut broke a run at the backslash, so deny rules on a bot `actor` that loaded in 0.5.1 -
+    `^(?!dependabot\[bot\]$)`, `^(?!.*\[bot\]$)`, `(?<!\[bot\])$` - were rejected as matching
+    every value. Caught by the review of the release commits. Every pattern the README, examples,
+    tests, fixture and pinned corpus carry still loads, bar the corpus's bare `*`, which it grades
+    dangerous. Known limit, fail-closed: a negative lookahead whose excluded text is split by a
+    group or an escape such as `\d` (`^(?!refs/heads/(dev|test)/)`, `^(?!refs/pull/\d+/)`) is
+    rejected too; written out in one piece (`^(?!refs/heads/dev/|refs/heads/test/)`), it loads.
   - The 0.5.1 sdist carried the repository's tooling dotfiles - `.github/`,
     `.pre-commit-config.yaml`, `.editorconfig`, `.gitattributes`, `.markdownlint*` - 10 of its 53
     files. `[tool.hatch.build.targets.sdist]` leaves out every root-level dot-path now (hatchling

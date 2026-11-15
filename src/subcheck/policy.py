@@ -273,10 +273,14 @@ def _matches_every_value(pattern: str, match: Callable[[str, str], bool]) -> boo
 
     The values are the unrelated ones above and each run of plain text in the pattern
     itself: a negative lookahead such as `^(?!refs/pull/)` matches all the unrelated
-    ones, and rules out the text it names. A value the pattern rules out proves that it
-    constrains something, so the extra values can only keep a pattern, never reject one.
+    ones, and rules out the text it names. Escaped punctuation stays in its run, read as
+    the character it stands for, so a deny rule on the bot `dependabot[bot]` - its
+    brackets escaped - is tried on that name, whole. A value the pattern rules out proves
+    that it constrains something, so the extra values can only keep a pattern, never
+    reject one.
     """
-    plain_text = re.findall(r"[\w/:@%. -]+", re.sub(r"\\([^\w\s])", r"\1", pattern))
+    runs = re.findall(r"(?:\\[^\w\s]|[\w/:@%. -])+", pattern)
+    plain_text = [re.sub(r"\\([^\w\s])", r"\1", run) for run in runs]
     return all(match(pattern, value) for value in (*_UNRELATED_VALUES, *plain_text))
 
 

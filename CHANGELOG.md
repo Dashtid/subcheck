@@ -43,13 +43,14 @@ All notable changes are documented here. Format based on
   "would constrain nothing" message and the `{required: true}` hint, beside another operator or
   on an optional rule as well. It is found by trying the pattern the way the validator does, on
   values with nothing in common - an empty one, a single letter, and a long one shaped like a real
-  `sub` - and on each run of plain text in the pattern itself, so a negative lookahead such as
-  `^(?!refs/pull/)`, which rules out the text it names, still loads. Nothing this project ships
-  stops loading: the README's snippets, the examples, every pattern the tests load, the vendored
-  fixture's subjects written as patterns, and all 181 condition patterns in the pinned subvectors
-  corpus but its bare `*`, which the corpus itself grades dangerous. Every published release from
-  0.2.0 through 0.5.1 has it. `tests/test_policy_match_everything.py`: 33 tests, 20 of which fail
-  against 0.5.1 - the other 13 pin patterns that must keep loading; 271 -> 304 tests.
+  `sub` - and on each run of plain text in the pattern itself, escaped punctuation read as the
+  character it stands for, so a negative lookahead such as `^(?!refs/pull/)` or
+  `^(?!dependabot\[bot\]$)`, which rules out the text it names, still loads. Nothing this project
+  ships stops loading: the README's snippets, the examples, every pattern the tests load, the
+  vendored fixture's subjects written as patterns, and all 181 condition patterns in the pinned
+  subvectors corpus but its bare `*`, which the corpus itself grades dangerous. Every published
+  release from 0.2.0 through 0.5.1 has it. `tests/test_policy_match_everything.py`: 39 tests, 20 of
+  which fail against 0.5.1 - the other 19 pin patterns that must keep loading; 271 -> 310 tests.
 
 ### Fixed
 

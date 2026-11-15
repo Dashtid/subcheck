@@ -52,6 +52,12 @@ All notable changes are documented here. Format based on
   nothing" - and the same `{required: true}` hint. The exit code is unchanged. Three tests in
   `tests/test_policy_empty_operators.py`, all failing against 0.5.1; 244 -> 247 tests.
 
+### Changed
+
+- `tests/test_docs_pins.py` loads each policy snippet in the README from a file, through the
+  loader the CLI uses, so the repeated-key check above covers the snippets as well. It parsed them
+  with `yaml.safe_load`, which keeps the last of two equal keys. Tests only.
+
 ## [0.5.1] - 2026-11-11
 
 ### Security

@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 import subcheck
-from subcheck import load_policy
+from subcheck import load_policy_file
 from subcheck.cli import main
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -67,13 +67,20 @@ def test_readme_quickstart_transcript_is_real_output():
     assert got == expected, "README quickstart no longer matches real output"
 
 
-def test_every_readme_policy_snippet_loads():
+def test_every_readme_policy_snippet_loads(tmp_path):
     # The workflow snippets are YAML too; a block counts as a policy when it uses
-    # a policy key, and load_policy then rejects any key a policy may not have.
+    # a policy key, and the loader then rejects any key a policy may not have. Each
+    # one is loaded from a file, the way the CLI loads it, because some checks - a
+    # key written twice - happen while the file is read, before load_policy runs.
     yaml = pytest.importorskip("yaml")
-    blocks = [yaml.safe_load(b) for b in _YAML_BLOCK.findall(README.read_text(encoding="utf-8"))]
-    policies = [b for b in blocks if isinstance(b, dict) and _POLICY_KEYS & set(b)]
+    snippets = []
+    for block in _YAML_BLOCK.findall(README.read_text(encoding="utf-8")):
+        parsed = yaml.safe_load(block)
+        if isinstance(parsed, dict) and _POLICY_KEYS & set(parsed):
+            snippets.append(block)
     # Without a floor, a README that changed shape would pass this vacuously.
-    assert len(policies) >= 5, f"expected the README's policy snippets, found {len(policies)}"
-    for snippet in policies:
-        assert load_policy(snippet).rules, f"README policy snippet defines no rules: {snippet}"
+    assert len(snippets) >= 5, f"expected the README's policy snippets, found {len(snippets)}"
+    for number, snippet in enumerate(snippets):
+        path = tmp_path / f"snippet-{number}.yaml"
+        path.write_text(snippet, encoding="utf-8")
+        assert load_policy_file(path).rules, f"README policy snippet defines no rules: {snippet}"

@@ -39,7 +39,7 @@ _ALLOWED_TOP_KEYS = {"issuer", "audience", "claims"}
 _UNRELATED_VALUES = (
     "",
     "x",
-    "repo:Sentinel-Org@10001/sentinel_repo.v2@20002:ref:refs/heads/release/2.0%3Arc-1",
+    "repo:Octo-Org@10001/octo_repo.v2@20002:ref:refs/heads/release/2.0%3Arc-1",
 )
 
 

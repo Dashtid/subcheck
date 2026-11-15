@@ -151,15 +151,15 @@ claims:
   environment: {required: true}    # present, with any value
 ```
 
+The same goes for `claims` itself: with no rules under it, it is rejected rather than read as "no
+claim rules", which would leave only the issuer and audience checked. A policy that means to check
+only those two leaves `claims` out.
+
 Whether a pattern matches every value is tried, not guessed: on an empty value, a single letter, a
 long `sub`-shaped value, and each run of plain text in the pattern itself. A pattern that rules out
 any of them loads - so a negative lookahead such as `^(?!refs/pull/)`, which rules out the text it
 names, still does. Write that text out in one piece: split by a group, as in
 `refs/heads/(dev|test)/`, or by an escape such as `\d`, it is not read as plain text.
-
-The same goes for `claims` itself: with no rules under it, it is rejected rather than read as "no
-claim rules", which would leave only the issuer and audience checked. A policy that means to check
-only those two leaves `claims` out.
 
 **Write each key once.** YAML and JSON parsers keep only the last of two equal keys in a mapping,
 so `repository: {equals: acme/api}` followed by `repository: {required: true}` would drop the pin

@@ -156,11 +156,14 @@ claim rules", which would leave only the issuer and audience checked. A policy t
 only those two leaves `claims` out.
 
 Whether a pattern matches every value is tried, not guessed: on an empty value, a single letter, a
-long `sub`-shaped value, and each run of plain text in the pattern itself, escaped punctuation such
-as `\[` read as the character it stands for. A pattern that rules out any of them loads - so a
-negative lookahead such as `^(?!refs/pull/)` or `^(?!dependabot\[bot\]$)`, which rules out the text
-it names, still does. Write that text out in one piece: split by a group, as in
-`refs/heads/(dev|test)/`, or by an escape such as `\d`, it is not read as plain text.
+long `sub`-shaped value, and each run of plain text in the pattern itself (letters, digits, spaces
+and `_/:@%.-`, plus any punctuation written escaped, such as `\[`, read as the character it stands
+for). A pattern that rules out any of them loads - so a negative lookahead such as
+`^(?!refs/pull/)` or `^(?!dependabot\[bot\]$)`, which rules out the text it names, still does.
+Write that text out in one piece. Split by a group, as in `refs/heads/(dev|test)/`, by a character
+class or a repeat, as in `[0-9]+` or `.*`, or by an escape such as `\d`, it is not read as plain
+text, and the pattern is rejected as matching every value although it rules something out:
+`^(?!refs/heads/(main|master)$)` is rejected, `^(?!refs/heads/main$|refs/heads/master$)` loads.
 
 **Write each key once.** YAML and JSON parsers keep only the last of two equal keys in a mapping,
 so `repository: {equals: acme/api}` followed by `repository: {required: true}` would drop the pin

@@ -284,8 +284,12 @@ Open follow-ups from the same pass:
     every value. Caught by the review of the release commits. Every pattern the README, examples,
     tests, fixture and pinned corpus carry still loads, bar the corpus's bare `*`, which it grades
     dangerous. Known limit, fail-closed: a negative lookahead whose excluded text is split by a
-    group or an escape such as `\d` (`^(?!refs/heads/(dev|test)/)`, `^(?!refs/pull/\d+/)`) is
-    rejected too; written out in one piece (`^(?!refs/heads/dev/|refs/heads/test/)`), it loads.
+    group, a character class, a repeat or an escape such as `\d` (`^(?!refs/heads/(dev|test)/)`,
+    `^(?!refs/pull/[0-9]+/merge$)`, `^(?!refs/pull/.*/merge$)`, `^(?!refs/pull/\d+/)`) is
+    rejected too, though it loaded in 0.5.1; written out in one piece
+    (`^(?!refs/heads/dev/|refs/heads/test/)`), or cut back to its fixed prefix
+    (`^(?!refs/pull/)`), it loads. The same review found the limit missing from the changelog,
+    which names it now.
   - The 0.5.1 sdist carried the repository's tooling dotfiles - `.github/`,
     `.pre-commit-config.yaml`, `.editorconfig`, `.gitattributes`, `.markdownlint*` - 10 of its 53
     files. `[tool.hatch.build.targets.sdist]` leaves out every root-level dot-path now (hatchling

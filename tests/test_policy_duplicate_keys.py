@@ -13,7 +13,9 @@ A repeated key is now a bad policy at every level, rc=2, and the error names the
 a key it merged in with `<<` is what a merge is for, and it still loads. `<<` is a key
 itself, though, and a second one is not dropped but folded in after the first, so the
 later merge replaced the earlier one's rules just as silently; it is rejected like any
-other repeat, in every spelling YAML reads as the merge key.
+other repeat, in every spelling YAML reads as the merge key. And one `<<` with a list may
+not merge two mappings that supply the same key: YAML keeps the first one's rule and
+drops the other's, the same silent replacement the other way round.
 """
 
 import json
@@ -115,6 +117,39 @@ MERGE_REPEATS = {
     ),
 }
 
+# One `<<` with a list, two of whose mappings supply the same key: (policy text, the key, the
+# line of the `<<`). YAML gives the EARLIER mapping precedence and drops the other's rule
+# without a word, so on 0.5.1 every one of these passed the token above - PASS (1 pass,
+# 0 fail, 0 missing), rc=0.
+MERGED_TWICE = {
+    # The pin lost to a presence check.
+    "claims-mapping": (
+        "claims:\n  <<: [{repository: {required: true}}, {repository: {equals: acme/api}}]\n",
+        "repository",
+        2,
+    ),
+    # The repository half of the subject check lost to the ref half.
+    "operator-mapping": (
+        "claims:\n  sub:\n"
+        "    <<: [{matches: ':ref:refs/heads/main$'}, {matches: '^repo:acme/api:'}]\n",
+        "matches",
+        3,
+    ),
+    # The first mapping's 'claims' replaced the second's.
+    "top-level": (
+        "<<: [{claims: {repository: {required: true}}},\n"
+        "     {claims: {repository: {equals: acme/api}}}]\n",
+        "claims",
+        1,
+    ),
+    # A key a mapping only merges in itself counts as one it supplies.
+    "through-a-nested-merge": (
+        "claims:\n  <<: [{<<: {repository: {required: true}}}, {repository: {equals: acme/api}}]\n",
+        "repository",
+        2,
+    ),
+}
+
 
 def _policy(tmp_path, text, suffix=".yaml"):
     path = tmp_path / f"policy{suffix}"
@@ -173,6 +208,16 @@ def test_a_repeated_merge_key_is_rejected_at_every_level(tmp_path, text, lines):
     assert "merge several mappings with one '<<: [*a, *b]'" in message
 
 
+@pytest.mark.parametrize(("text", "key", "line"), MERGED_TWICE.values(), ids=MERGED_TWICE.keys())
+def test_a_key_two_merged_mappings_both_supply_is_rejected(tmp_path, text, key, line):
+    expected = (
+        f"policy: the key {key!r} comes from two of the mappings merged on line {line} - YAML "
+        "would keep the first one's and silently drop the other; merge mappings that share no key"
+    )
+    with pytest.raises(ValueError, match=re.escape(expected)):
+        load_policy_file(_policy(tmp_path, text))
+
+
 def test_one_merge_of_several_mappings_still_loads(tmp_path):
     # The form that error points at: one `<<`, with a list. A rule takes every key the
     # mappings supply, and a key the rule writes itself still wins.
@@ -186,6 +231,23 @@ def test_one_merge_of_several_mappings_still_loads(tmp_path):
         ("sub", "^repo:acme/api:", None, False),
         ("ref", None, "refs/heads/*", True),
     ]
+
+
+def test_a_mapping_that_merges_itself_still_loads(tmp_path):
+    # An alias inside its own anchor: YAML folds in what the mapping already holds, and the
+    # check that follows merges through mappings must not chase it round in a loop.
+    text = "claims:\n  repository: &self {<<: *self, equals: acme/api}\n"
+    rules = load_policy_file(_policy(tmp_path, text)).rules
+    assert [(rule.name, rule.equals) for rule in rules] == [("repository", "acme/api")]
+
+
+def test_a_key_that_is_not_a_scalar_is_left_to_yaml(tmp_path):
+    # No dict can hold it, so there is no repeat to look for: SafeConstructor rejects it,
+    # and the loader reports that as YAML that is not valid.
+    text = "claims:\n  ? [repository]\n  : {equals: acme/api}\n"
+    with pytest.raises(ValueError, match="is not valid YAML") as excinfo:
+        load_policy_file(_policy(tmp_path, text))
+    assert "found unhashable key" in str(excinfo.value)
 
 
 def test_a_key_overridden_after_a_merge_is_not_a_repeat(tmp_path):
@@ -235,6 +297,15 @@ def test_cli_exits_2_on_a_repeated_key(tmp_path, capsys, suffix, text, key):
     assert _run(tmp_path, text, suffix) == 2
     out, err = capsys.readouterr()
     assert f"the key {key!r} is repeated in one mapping" in err
+    assert out == "", "a policy that was rejected must not print a verdict"
+
+
+@pytest.mark.parametrize(("text", "key", "line"), MERGED_TWICE.values(), ids=MERGED_TWICE.keys())
+def test_cli_exits_2_on_a_key_two_merged_mappings_both_supply(tmp_path, capsys, text, key, line):
+    # Was: rc=0 for every one of these, against a token from a different repository.
+    assert _run(tmp_path, text) == 2
+    out, err = capsys.readouterr()
+    assert f"the key {key!r} comes from two of the mappings merged on line {line}" in err
     assert out == "", "a policy that was rejected must not print a verdict"
 
 

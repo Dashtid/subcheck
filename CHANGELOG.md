@@ -21,15 +21,18 @@ All notable changes are documented here. Format based on
   `repo:attacker/evil:ref:refs/heads/main` passed on `:ref:refs/heads/main$` alone. YAML's merge
   key is a key too: a second `<<` in one mapping is folded in after the first rather than dropped,
   so the same pin and presence check written as two merges passed the same way - at every level,
-  and in every spelling YAML reads as a merge key, `!!merge` included. A repeated key is now
-  rejected at every level as a bad policy, exit `2`, with an error that names the key - and, for
-  YAML, both lines; a repeated `<<` is pointed at `<<: [*a, *b]`, the one form that merges several
-  mappings. YAML is read through a `yaml.SafeLoader` subclass that checks each mapping as it is
-  written, JSON through an `object_pairs_hook`. A key that overrides one merged in with YAML's `<<`
-  is not a repeat, and loads as before. Every published release from 0.2.0 through 0.5.1 has it.
-  `tests/test_policy_duplicate_keys.py`: 32 tests, 27 of which fail against 0.5.1 - the other five
-  pin the merge override, one merge of several mappings, a key shared by two mappings, and two
-  controls; 225 -> 257 tests.
+  and in every spelling YAML reads as a merge key, `!!merge` included. One `<<` with a list did it
+  the other way round: YAML keeps the first mapping's rule for a key two of them supply, so
+  `<<: [{repository: {required: true}}, {repository: {equals: acme/api}}]` dropped the pin too.
+  A repeated key is now rejected at every level as a bad policy, exit `2`, with an error that names
+  the key - and, for YAML, both lines; a repeated `<<` is pointed at `<<: [*a, *b]`, the one form
+  that merges several mappings, and a key two of those mappings supply is rejected as well. YAML is
+  read through a `yaml.SafeLoader` subclass that checks each mapping as it is written, JSON through
+  an `object_pairs_hook`. A key that overrides one merged in with YAML's `<<` is not a repeat, and
+  loads as before. Every published release from 0.2.0 through 0.5.1 has it.
+  `tests/test_policy_duplicate_keys.py`: 42 tests, 35 of which fail against 0.5.1 - the other seven
+  pin the merge override, one merge of several mappings, a mapping that merges itself, a key no
+  mapping can hold, a key shared by two mappings, and two controls; 225 -> 267 tests.
 - **A `matches` or `glob` that every value matches passed any token.** 0.5.1 rejected
   `matches: ''`, because `re.search('', s)` succeeds on every string, but it was not the only such
   pattern. `matches: '^'`, `'(?i)'`, `'(?x) '` and `'.*'`, and `glob: '*'`, each loaded and passed
@@ -46,7 +49,7 @@ All notable changes are documented here. Format based on
   fixture's subjects written as patterns, and all 181 condition patterns in the pinned subvectors
   corpus but its bare `*`, which the corpus itself grades dangerous. Every published release from
   0.2.0 through 0.5.1 has it. `tests/test_policy_match_everything.py`: 33 tests, 20 of which fail
-  against 0.5.1 - the other 13 pin patterns that must keep loading; 260 -> 293 tests.
+  against 0.5.1 - the other 13 pin patterns that must keep loading; 270 -> 303 tests.
 
 ### Fixed
 
@@ -56,7 +59,7 @@ All notable changes are documented here. Format based on
   neither the empty key nor the way to ask for presence on purpose. It now gets the wording 0.5.1
   gave an operator with no value - "claim 'repository' has no value, so it would constrain
   nothing" - and the same `{required: true}` hint. The exit code is unchanged. Three tests in
-  `tests/test_policy_empty_operators.py`, all failing against 0.5.1; 257 -> 260 tests.
+  `tests/test_policy_empty_operators.py`, all failing against 0.5.1; 267 -> 270 tests.
 
 ### Changed
 

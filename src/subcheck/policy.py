@@ -320,6 +320,17 @@ def _repeated_merge_key(where: str) -> ValueError:
     )
 
 
+def _key_merged_twice(key: object, line: int) -> ValueError:
+    # In `<<: [*a, *b]` YAML gives the EARLIER mapping precedence, so a key both supply took
+    # a's rule and dropped b's without a word: `<<: [{repository: {required: true}},
+    # {repository: {equals: acme/api}}]` left a presence check.
+    return ValueError(
+        f"policy: the key {key!r} comes from two of the mappings merged on line {line} - YAML "
+        "would keep the first one's and silently drop the other; merge mappings that share "
+        "no key"
+    )
+
+
 def _unique_json_keys(pairs: list) -> dict:
     """An object_pairs_hook for json.loads that rejects a key repeated in one object."""
     data: dict = {}
@@ -331,7 +342,11 @@ def _unique_json_keys(pairs: list) -> dict:
 
 
 def _load_yaml(text: str) -> Any:
-    """yaml.safe_load, except that a key repeated in one mapping is rejected."""
+    """yaml.safe_load, except that a key the parser would silently replace is rejected.
+
+    That is a key repeated in one mapping, `<<` included, and a key that two of the mappings
+    one `<<` merges both supply.
+    """
     import yaml
 
     def key_of(key_node: yaml.Node) -> tuple | None:
@@ -344,15 +359,37 @@ def _load_yaml(text: str) -> Any:
             return None
         return (_YAML_STR_TAG if key_node.tag == _YAML_VALUE_TAG else key_node.tag, key_node.value)
 
+    def merged(value_node: yaml.Node) -> list:
+        # The mappings a `<<` merges: one, or a list of them. Anything else is
+        # SafeConstructor's to reject.
+        nodes = value_node.value if isinstance(value_node, yaml.SequenceNode) else [value_node]
+        return [node for node in nodes if isinstance(node, yaml.MappingNode)]
+
+    def supplied(mapping: yaml.MappingNode, seen: set) -> dict:
+        # The keys a mapping holds once its own merges are folded in, in the order written.
+        # `seen` stops a mapping that merges itself through an alias.
+        keys: dict = {}
+        if id(mapping) not in seen:
+            seen.add(id(mapping))
+            for key_node, value_node in mapping.value:
+                key = key_of(key_node)
+                if key == _YAML_MERGE_KEY:
+                    for source in merged(value_node):
+                        keys.update(supplied(source, seen))
+                elif key is not None:
+                    keys[key] = key_node.value
+        return keys
+
     class UniqueKeyLoader(yaml.SafeLoader):
         def compose_mapping_node(self, anchor: Any) -> yaml.MappingNode:
             node = super().compose_mapping_node(anchor)
             # Checked as written, before SafeConstructor folds any `<<` merge into the
             # node: a merged key that the mapping overrides is what a merge is for, not a
-            # repeat - but `<<` itself is a key like any other. (PyYAML's own composer has
-            # this check, commented out, here.)
+            # repeat - but `<<` itself is a key like any other, and so is a key that two of
+            # the mappings one `<<` merges both supply. (PyYAML's own composer has the
+            # first check, commented out, here.)
             lines: dict = {}
-            for key_node, _ in node.value:
+            for key_node, value_node in node.value:
                 key = key_of(key_node)
                 if key is None:
                     continue
@@ -363,6 +400,14 @@ def _load_yaml(text: str) -> Any:
                         raise _repeated_merge_key(where)
                     raise _repeated_key(key_node.value, where)
                 lines[key] = line
+                if key == _YAML_MERGE_KEY:
+                    taken: dict = {}
+                    for source in merged(value_node):
+                        keys = supplied(source, set())
+                        shared = [merged_key for merged_key in keys if merged_key in taken]
+                        if shared:
+                            raise _key_merged_twice(keys[shared[0]], line)
+                        taken.update(keys)
             return node
 
     # A yaml.SafeLoader subclass - the linters accept only a Loader named SafeLoader.

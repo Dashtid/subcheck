@@ -340,6 +340,24 @@ Open follow-ups from the same pass:
   the same mapping keeps the presence check, drops the pin, and passes claims naming
   `attacker/evil` on exit 0. Open: whether an opt-in lint should name each merged rule a key
   replaces, leaving the override itself valid. Found by the final review of 0.5.2.
+- `[ ]` **Deny rules built by `re.escape()` from a name with `,`, `'`, `!` or an emoji are still
+  rejected - open, code; fails closed, and documented.** `re.escape()` leaves `,` `'` `"` `;` `!`
+  `=` `<` `>`, the backtick and every character outside ASCII as they are, and a run of plain
+  text ends at each of them that is not a letter or a digit. So `^(?!Build,\ test$)` is tried on
+  `Build` and ` test`, and `^(?!Don't\ merge$)`, `^(?!Build\ –\ test$)` (an en dash),
+  `^(?!Lint\ \&\ test;\ deploy$)`, `^(?!Build!$)` and a name led by an emoji are split the same
+  way: each exited 0 and 1 on 0.5.1, and exits 2 on 0.5.2 and 0.5.3 with an untrue "matches
+  every value". Escaped by hand, as `^(?!Build\,\ test$)`, each loads, and the README and the
+  0.5.3 changelog say so. A later fix could read as plain text the characters `re` takes as
+  themselves - `,` `'` `"` `;` and the backtick (the comma of a repeat count such as `{2,3}` is
+  syntax, but harmless as text tried) - and any character outside ASCII that is not whitespace.
+  `!` `=` `<` `>` could follow once the lookaround, atomic and named-group openers - `(?!`, `(?=`,
+  `(?<!`, `(?<=`, `(?>`, `(?P<name>` and `(?P=name)` - are read as syntax, as `(?:` is; read as
+  plain text today, the `!` of `(?!` would join the text after it, and `^(?!refs/pull/)` would be
+  tried on `!refs/pull/` and rejected. Like every value tried, the new ones can only keep a
+  pattern: `^[^,]*$` on `repository` would load then, as `^[^\,]*$` does now, and pass a token
+  from any repository - the open item above on patterns every real value of a trust anchor
+  satisfies. Found by the independent review of the 0.5.3 commits, before they were pushed.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

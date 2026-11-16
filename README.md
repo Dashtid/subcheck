@@ -159,18 +159,21 @@ only those two leaves `claims` out.
 
 Whether a pattern matches every value is tried, not guessed: on an empty value, a single letter, a
 long `sub`-shaped value, a workflow name with spaces and punctuation, and each run of plain text in
-the pattern itself (letters, digits, spaces and `_/:@%.-`, plus any punctuation, space or
+the pattern itself (letters, digits, spaces and `_/:@%.-`, plus any punctuation, symbol, space or
 underscore written escaped, such as `\[`, `\ ` or `\_`, read as the character it stands for -
 `re.escape()` writes every space as `\ `). A pattern that rules out any of them loads - so a
 negative lookahead such as `^(?!refs/pull/)`, `^(?!dependabot\[bot\]$)` or `^(?!CI\ Build$)`,
 which rules out the text it names, still does. Write that text out in one piece. Split by a
 group, as in `refs/heads/(dev|test)/`, by a character class or a repeat, as in `[0-9]+` or `.*`,
-or by an escape such as `\d`, it is not read as plain text, and the pattern is rejected as matching
+by an escape such as `\d`, or by punctuation other than `_/:@%.-` or a symbol left unescaped, such
+as `,`, `'`, `!` or an emoji, it is not read as plain text, and the pattern is rejected as matching
 every value although it rules something out: `^(?!refs/heads/(main|master)$)` is rejected,
-`^(?!refs/heads/main$|refs/heads/master$)` loads. An escape or a group opener at either end of the
-text leaves it in one piece: `^(?!.*\bdebug\b)` and `^(?!(?:refs/pull/))` load. An allowlist that
-every one of those values happens to satisfy, such as `^[^~]*$`, is rejected the same way. On a
-claim that is never empty, the empty value is not tried.
+`^(?!refs/heads/main$|refs/heads/master$)` loads. `re.escape()` leaves `,`, `'`, `!` and emoji as
+they are, so escape them by hand: `^(?!Build,\ test$)` is rejected, `^(?!Build\,\ test$)` loads.
+An escape or a group opener at either end of the text leaves it in one piece: `^(?!.*\bdebug\b)`
+and `^(?!(?:refs/pull/))` load. An allowlist that every one of those values happens to satisfy,
+such as `^[^~]*$`, is rejected the same way. On a claim that is never empty, the empty value is
+not tried.
 
 **Write each key once.** YAML and JSON parsers keep only the last of two equal keys in a mapping,
 so `repository: {equals: acme/api}` followed by `repository: {required: true}` would drop the pin

@@ -31,9 +31,15 @@ All notable changes are documented here. Format based on
   value to try, and a pattern that matches every value matches it too, so every such pattern is
   still rejected: each one the tests and the 0.5.2 entry name, and the same names built into
   one, as the deny rule without its `^`, the name made optional or the name beside an empty
-  alternative. `tests/test_policy_match_everything.py`: 22 tests, 10 of which fail against
-  0.5.2 - the other twelve pin the names 0.5.2 already loaded, the match-every-value patterns
-  built from them and an escaped newline that must still end a run; 337 -> 359 tests.
+  alternative. Known limit, fail-closed as in 0.5.2: a deny rule built by `re.escape()` from a
+  name that holds `,`, `'`, `"`, `;`, `!`, `=`, `<`, `>`, a backtick, or a character outside ASCII
+  that is not a letter, a digit or whitespace, such as an emoji or an en dash - `re.escape()`
+  leaves each as it is, and a run of plain text ends at it - still exits `2`, as
+  `^(?!Build,\ test$)` and `^(?!Don't\ merge$)` do where 0.5.1 exited `0` and `1`, and loads
+  with that character escaped by hand, as `^(?!Build\,\ test$)`.
+  `tests/test_policy_match_everything.py`: 22 tests, 10 of which fail against 0.5.2 - the other
+  twelve pin the names 0.5.2 already loaded, the match-every-value patterns built from them and
+  an escaped newline that must still end a run; 337 -> 359 tests.
 
 ## [0.5.2] - 2026-11-15
 

@@ -6,6 +6,8 @@ All notable changes are documented here. Format based on
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-16
+
 ### Fixed
 
 - **A deny rule with an escaped space or underscore loaded in 0.5.1 and was rejected by 0.5.2.**

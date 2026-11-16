@@ -9,13 +9,14 @@ variable left empty is `(?i)`.
 Whether a pattern constrains anything is asked the way the validator asks it - with
 `re.search` and `fnmatch.fnmatchcase` - of values that have nothing in common: an empty
 one, one letter, a long one shaped like a real `sub` and one shaped like a workflow name,
-plus each run of plain text in the pattern itself, escaped punctuation read as the
-character it stands for, and any other escape or a group opener read as syntax that ends
-a run. A pattern that rules out any of them constrains something and is kept, so the
-extra values can only keep a pattern, never reject one. They are what keeps a negative
-lookahead such as `^(?!refs/pull/)`, or a deny rule on a bot such as `dependabot[bot]`
-with its brackets escaped, which matches every unrelated value and rules out the text it
-names.
+plus each run of plain text in the pattern itself. An escape that `re` reads as the
+character escaped - punctuation, a space, an underscore - is read as that character, and
+any other escape or a group opener as syntax that ends a run. A pattern that rules out any
+of them constrains something and is kept, so the extra values can only keep a pattern,
+never reject one. They are what keeps a negative lookahead such as `^(?!refs/pull/)`, or a
+deny rule on a bot such as `dependabot[bot]` with its brackets escaped, or on a workflow
+named `CI Build` with its space escaped, as `re.escape()` writes it, which matches every
+unrelated value and rules out the text it names.
 
 The empty value is not tried on a claim GitHub never sends empty - `sub`, `repository`
 and the other trust-boundary anchors. A pattern that rules out only that value, such as
@@ -222,6 +223,16 @@ def test_a_pattern_that_rules_out_a_value_is_kept(op, pattern, passes, fails):
         (r"^(?!\Adependabot)", "dependabot/pip/requests-2.32.0"),
         (r"^(?!(?:refs/pull/))", "refs/pull/42/merge"),
         (r"^(?!(?i:dependabot\[bot\])$)", "Dependabot[bot]"),
+        # An escaped space or underscore, which re reads as that character - and re.escape()
+        # writes every space as `\ `. Each loaded on 0.5.1, and was rejected on 0.5.2, which
+        # kept only escaped punctuation in a run: `^(?!CI\ Build$)` was tried on 'CI' and
+        # 'Build', and `^(?!.*\ prod$)` on 'prod'.
+        (r"^(?!CI\ Build$)", "CI Build"),
+        (r"^(?!.*Deploy\ to\ prod)", "Deploy to prod"),
+        (r"(?<!my\-org/my\ repo)$", "my-org/my repo"),
+        (r"^(?!.*\ prod$)", "Deploy to prod"),
+        (r"^(?!release\_please$)", "release_please"),
+        (r"^(?!.*\_wip$)", "refs/heads/feature_wip"),
     ],
 )
 def test_a_negative_lookahead_is_kept(pattern, excluded):
@@ -289,12 +300,13 @@ def test_every_pinned_corpus_pattern_loads_but_its_dangerous_wildcard():
 # --- through the CLI ---------------------------------------------------------
 
 
-def _run(tmp_path, policy_text):
-    claims = tmp_path / "claims.json"
-    claims.write_text(json.dumps(OTHER_REPO), encoding="utf-8")
+def _run(tmp_path, policy_text, claims=None):
+    # OTHER_REPO, with any claims given set over it.
+    claims_file = tmp_path / "claims.json"
+    claims_file.write_text(json.dumps({**OTHER_REPO, **(claims or {})}), encoding="utf-8")
     policy = tmp_path / "policy.yaml"
     policy.write_text(policy_text, encoding="utf-8")
-    return main(["--claims", str(claims), "--policy", str(policy)])
+    return main(["--claims", str(claims_file), "--policy", str(policy)])
 
 
 @pytest.mark.parametrize(
@@ -345,3 +357,52 @@ def test_cli_control_a_pattern_with_something_in_it_still_fails_these_claims(tmp
     # The claims above really are ones the policies should catch.
     assert _run(tmp_path, "claims:\n  repository: {matches: '(?i)^acme/'}\n") == 1
     assert "does not satisfy matches /(?i)^acme//" in capsys.readouterr().out
+
+
+# A name a deny rule is written for, the claim it names, and another value of that claim.
+# The rules are built with re.escape(), as a script that writes a policy builds them: it
+# writes a space as `\ `, a hyphen as `\-` and a bracket as `\[`, and leaves `_` and `/`.
+ESCAPED_NAMES = [
+    ("workflow", "CI Build", "Nightly"),
+    ("environment", "Deploy to prod", "staging"),
+    ("workflow", "release_please", "release-please"),
+    ("actor", "dependabot[bot]", "octocat"),
+    ("actor", "github-actions[bot]", "octocat"),
+    ("repository", "my-org/my repo", "my-org/my-repo"),
+]
+
+
+def _matches(claim, pattern):
+    # A YAML policy, as a policy file holds one; no pattern here holds a single quote.
+    return f"claims:\n  {claim}: {{matches: '{pattern}'}}\n"
+
+
+@pytest.mark.parametrize(
+    ("claim", "name", "other"), ESCAPED_NAMES, ids=[name for _, name, _ in ESCAPED_NAMES]
+)
+def test_cli_runs_a_deny_rule_built_with_re_escape(tmp_path, capsys, claim, name, other):
+    # Was: rc=2 on 0.5.2 for each name with a space, "matches every value", though each
+    # rule rules out the name it is built from; rc=0 and rc=1 on 0.5.1, as now.
+    for shape in ("^(?!{}$)", "^(?!.*{})", "(?<!{})$"):
+        policy_text = _matches(claim, shape.format(re.escape(name)))
+        assert _run(tmp_path, policy_text, {claim: other}) == 0
+        assert _run(tmp_path, policy_text, {claim: name}) == 1
+        out, err = capsys.readouterr()
+        assert err == ""
+        assert f"[-] {claim}" in out
+
+
+@pytest.mark.parametrize(
+    ("claim", "name", "other"), ESCAPED_NAMES, ids=[name for _, name, _ in ESCAPED_NAMES]
+)
+def test_cli_exits_2_on_those_names_in_a_pattern_that_matches_every_value(
+    tmp_path, capsys, claim, name, other
+):
+    # Reading `\ ` as a space lets none of these through: the deny rule without its `^`,
+    # which fails where the name starts and matches one character on; the name made
+    # optional; and the name beside an empty alternative.
+    for shape in ("(?!{}$)", "(?:{})?", "{}|"):
+        assert _run(tmp_path, _matches(claim, shape.format(re.escape(name))), {claim: other}) == 2
+        out, err = capsys.readouterr()
+        assert "matches every value, so it would constrain nothing" in err
+        assert out == "", "a policy that was rejected must not print a verdict"

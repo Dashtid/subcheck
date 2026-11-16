@@ -313,24 +313,36 @@ def _matches_every_value(
 # One token of a pattern: an escape - a backslash and the character after it - a group
 # opener with or without flags, such as `(?:` or `(?i:`, or any other single character.
 _PATTERN_TOKEN = re.compile(r"\\.|\(\?[aiLmsux-]*:|.", re.S)
+# An escape that `re` reads as the character escaped. Per the re docs, a backslash before a
+# character that is "not an ASCII digit or an ASCII letter" matches that character: `\[`,
+# `\ `, `\_`. Before a letter or a digit it is something else - a class such as `\d`, an
+# anchor or a boundary such as `\A` or `\b`, a control character such as `\n`, a numeric or
+# named escape such as `\x41`, or a backreference such as `\1`. Whitespace other than a
+# space ends a run escaped or not, so no value tried holds a newline: `^.*$` matches every
+# value that holds none, and has to stay rejected.
+_LITERAL_ESCAPE = re.compile(r"\\(?:[^\sA-Za-z0-9]| )")
 
 
 def _plain_text(pattern: str) -> list[str]:
     """Each run of plain text in `pattern`: letters, digits, spaces and `_/:@%.-`.
 
-    Escaped punctuation stays in its run, read as the character it stands for. Any other
-    escape ends the run, because it stands for no one character, and so does a group
+    An escape that re reads as the character escaped, such as escaped punctuation, an
+    escaped space or an escaped underscore, stays in its run as that character, unless it
+    is whitespace other than a space. Any other escape ends the run, and so does a group
     opener, which is syntax like a bare `(`.
     """
     # Read one character at a time, the letter of an escape such as `\b` or `\A`, and the
     # colon of `(?:`, stuck to the text beside it: `^(?!.*\bdebug\b)` was tried on
     # 'bdebug' and `^(?!(?:refs/pull/))` on ':refs/pull/', and as neither is the text
-    # the pattern rules out, both were rejected as matching every value.
+    # the pattern rules out, both were rejected as matching every value. And only escaped
+    # punctuation stayed in a run, so an escaped space or underscore ended it, though re
+    # reads `\ ` as a space: `^(?!CI\ Build$)`, which is what re.escape() writes for a
+    # workflow named 'CI Build', was tried on 'CI' and 'Build', and rejected the same way.
     runs: list[str] = []
     run = ""
     for token in _PATTERN_TOKEN.findall(pattern):
-        if len(token) == 2 and re.fullmatch(r"[^\w\s]", token[1]):
-            run += token[1]  # an escape is the only two-character token
+        if _LITERAL_ESCAPE.fullmatch(token):
+            run += token[1]
         elif re.fullmatch(r"[\w/:@%. -]", token):
             run += token
         else:

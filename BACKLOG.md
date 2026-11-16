@@ -317,6 +317,29 @@ Open follow-ups from the same pass:
     repository - every file in it is byte-identical to the `v0.5.1` tag, checked 2026-11-15
     against the copy on PyPI (sha256 `6f2c9abed0f5...`) - so there is nothing to withdraw, and the
     fix is forward, in 0.5.2.
+- `[x]` **Deny rules with an escaped space or underscore - DONE 2026-11-16 (v0.5.3).** Found by
+  the final review of 0.5.2: a run of plain text kept an escape only when it was punctuation, so
+  `^(?!CI\ Build$)` - what `re.escape()` writes for a workflow named `CI Build` - was tried on
+  `CI` and `Build`, and a deny rule that loaded in 0.5.1 exited 2 as matching every value. Every
+  escape that `re` reads as the character escaped stays in its run now, bar whitespace other
+  than a space, so no value tried holds a newline.
+- `[ ]` **A pattern every real value of a trust anchor satisfies still loads if a value tried
+  fails it - open, design.** The match-everything check rejects only what it can show matches
+  every value, by trying values with nothing in common, and a pattern that one of them fails
+  loads even when every value GitHub really sends satisfies it - so it passes a token from any
+  repository: `sub` with `glob: 'repo:*'` or `matches: '(?i)^repo:'`, `repository` with
+  `glob: '*/*'` or `matches: '..'`. Each loads on 0.5.2 and 0.5.3 alike, and passes claims
+  naming `attacker/evil` on exit 0. Telling them from a real pin takes each claim's grammar,
+  which the loader does not encode. A future opt-in lint could warn on them - a `sub` or
+  `repository` pattern that pins no owner, say - without rejecting anything that loads today.
+  Found by the final review of 0.5.2.
+- `[ ]` **A key written over a `<<` merge replaces the merged rule - open, design.** That is by
+  design, and the README says so: a key that overrides one merged in with `<<` is not a repeat,
+  because overriding is what a merge is for. It is also as quiet as the repeated key 0.5.2
+  rejects: `<<: {repository: {equals: acme/api}}` followed by `repository: {required: true}` in
+  the same mapping keeps the presence check, drops the pin, and passes claims naming
+  `attacker/evil` on exit 0. Open: whether an opt-in lint should name each merged rule a key
+  replaces, leaving the override itself valid. Found by the final review of 0.5.2.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

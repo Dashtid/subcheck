@@ -6,6 +6,33 @@ All notable changes are documented here. Format based on
 
 ## [Unreleased]
 
+### Fixed
+
+- **A deny rule with an escaped space or underscore loaded in 0.5.1 and was rejected by 0.5.2.**
+  The match-everything check also tries a pattern on each run of plain text in it, so that a
+  negative lookahead such as `^(?!refs/pull/)` is tried on the text it rules out. A run kept an
+  escape only when the escaped character was punctuation, so an escaped space or underscore ended
+  it, although `re` reads `\ ` and `\_` as that one character - and `re.escape()` writes every
+  space as `\ `. A deny rule whose text held an escaped space was tried on the words apart -
+  `^(?!CI\ Build$)` on `CI` and `Build`, `^(?!.*\ prod$)` on `prod` - matched them all, and
+  exited `2` with an untrue "matches every value". Reproduced through the published 0.5.2 CLI
+  with deny rules built by `re.escape()` from the workflow, environment and repository names
+  `CI Build`, `Deploy to prod` and `my-org/my repo`, and with a hand-written `\_`: exit `2`
+  against claims that carried the name and claims that did not, where 0.5.1 exited `1` and `0`.
+  Rules built the same way from `release_please`, `dependabot[bot]` and `github-actions[bot]`
+  were not affected: `re.escape()` leaves `_` alone, and the hyphen and the brackets it escapes
+  are punctuation. An escape now stays in its run whenever `re` reads it as the character
+  escaped - a backslash before anything but an ASCII letter or digit - unless that character is
+  whitespace other than a space, so no value tried holds a newline. Every other escape still
+  ends a run: a class, an anchor or a boundary, a control character, a numeric or named escape
+  and a backreference, such as `\d`, `\A`, `\b`, `\n`, `\x41` and `\1`. A run is only one more
+  value to try, and a pattern that matches every value matches it too, so every such pattern is
+  still rejected: each one the tests and the 0.5.2 entry name, and the same names built into
+  one, as the deny rule without its `^`, the name made optional or the name beside an empty
+  alternative. `tests/test_policy_match_everything.py`: 18 tests, 9 of which fail against
+  0.5.2 - the other nine pin the names 0.5.2 already loaded and the match-every-value patterns
+  built from them; 337 -> 355 tests.
+
 ## [0.5.2] - 2026-11-15
 
 ### Security

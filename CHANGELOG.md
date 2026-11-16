@@ -31,9 +31,9 @@ All notable changes are documented here. Format based on
   value to try, and a pattern that matches every value matches it too, so every such pattern is
   still rejected: each one the tests and the 0.5.2 entry name, and the same names built into
   one, as the deny rule without its `^`, the name made optional or the name beside an empty
-  alternative. `tests/test_policy_match_everything.py`: 18 tests, 9 of which fail against
-  0.5.2 - the other nine pin the names 0.5.2 already loaded and the match-every-value patterns
-  built from them; 337 -> 355 tests.
+  alternative. `tests/test_policy_match_everything.py`: 22 tests, 10 of which fail against
+  0.5.2 - the other twelve pin the names 0.5.2 already loaded, the match-every-value patterns
+  built from them and an escaped newline that must still end a run; 337 -> 359 tests.
 
 ## [0.5.2] - 2026-11-15
 

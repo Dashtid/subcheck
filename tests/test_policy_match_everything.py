@@ -71,6 +71,10 @@ MATCH_EVERYTHING = [
     # Anchored at both ends, it still matches every value that holds no newline - and no
     # claim value does, so no value tried may hold one either.
     ("matches", "^.*$"),
+    # The same, with the newline written into the pattern escaped, which re reads as a
+    # newline: it has to end a run of plain text as a bare one does, or it would be tried,
+    # be the one value ruled out, and keep the pattern.
+    ("matches", "\\A[^\\\n]*\\Z"),
 ]
 
 
@@ -117,6 +121,8 @@ MATCH_EVERY_NON_EMPTY = [
     ("matches", r"[\s\S]"),
     ("glob", "?*"),
     ("glob", "*?"),
+    # An escaped newline is not tried here either: it would be the one value ruled out.
+    ("matches", "^[^\\\n]+$"),
 ]
 
 # The trust-boundary anchors: in every GitHub token, and never empty.
@@ -233,6 +239,9 @@ def test_a_pattern_that_rules_out_a_value_is_kept(op, pattern, passes, fails):
         (r"^(?!.*\ prod$)", "Deploy to prod"),
         (r"^(?!release\_please$)", "release_please"),
         (r"^(?!.*\_wip$)", "refs/heads/feature_wip"),
+        # An escaped letter outside ASCII is read as that letter too; 0.5.2 tried this one on
+        # 'Caf'.
+        (r"^(?!Caf\é$)", "Café"),
     ],
 )
 def test_a_negative_lookahead_is_kept(pattern, excluded):

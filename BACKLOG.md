@@ -317,6 +317,19 @@ Open follow-ups from the same pass:
     repository - every file in it is byte-identical to the `v0.5.1` tag, checked 2026-11-15
     against the copy on PyPI (sha256 `6f2c9abed0f5...`) - so there is nothing to withdraw, and the
     fix is forward, in 0.5.2.
+- `[ ]` **Deny rules built with `re.escape()` from a name with a space exit 2 (fail-closed).**
+  `re.escape()` writes a space as `\ `, and the 0.5.2 plain-text runs end at an escaped space, so
+  `^(?!CI\ Build$)` is never tried on `CI Build` and is rejected as matching every value; it
+  loaded in 0.5.1. Written with a plain space (`^(?!CI Build$)`), it loads. A fix was drafted and
+  held back on 2026-11-16 (branch `wip/0.5.3-escaped-space`, 4 commits, unreleased): its second
+  review found that once `\ ` joins a run, a "not blank" pattern on a trust anchor -
+  `repository: {matches: '[^\ ]'}`, `^(?!\ *$)`, `.*[^\ ]`, `^(?!\ )`, `\S(?<!\ )` - is tried on
+  a value of only spaces, which it rules out, so it loads and passes a token from any repository
+  (exit 0). That is a fail-open in exchange for a fail-closed, so 0.5.2 stays the release. The
+  hand-written tokenizer cannot tell an escape inside a character class from one in a literal;
+  the fix wants runs taken from the parsed pattern (literal sequences only, never class members)
+  before it ships. The same review listed names that still split a run either way: combining
+  marks (Devanagari, Thai, Hebrew niqqud, NFD accents) and whitespace other than U+0020.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never

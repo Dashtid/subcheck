@@ -86,10 +86,25 @@ new/renamed/transferred repos on **2026-07-15**; name-based policies silently st
   published, trusted-publishing run green, `pypi.org/pypi/subcheck/json` returns 200 —
   **`pip install subcheck` works.** The "featured but not installable" state is over.
 
+For the next release - packaging metadata in `pyproject.toml`, no code change:
+
+- `[ ]` Declare the license as a PEP 639 SPDX expression. `pyproject.toml` still uses the table
+  form, `license = { text = "MIT" }`, plus the `License :: OSI Approved :: MIT License`
+  classifier; PEP 639 deprecates the table, and core metadata 2.4 - hatchling's default since
+  1.27 - deprecates `License ::` classifiers. Replace the table with `license = "MIT"` and
+  `license-files = ["LICENSE"]`, drop the classifier, and change `[build-system]`'s bare
+  `hatchling` to `hatchling>=1.27`, the first release the packaging guide lists for PEP 639.
+- `[ ]` Add a `Changelog` URL under `[project.urls]`:
+  `https://github.com/Dashtid/subcheck/blob/main/CHANGELOG.md`. The table has only `Homepage`
+  (this repository) and `Related` (subvectors) today.
+- `[ ]` Add an `Issues` URL under `[project.urls]`: `https://github.com/Dashtid/subcheck/issues`.
+
 ## Phase 4 — launch (the gate has partly fired on its own)
 
 - `[x]` **Set the GitHub pin** — done, and at slot **#2** (verified 2026-08-16), ahead of its gate.
-- `[ ]` Record the demo GIF/asciinema (a PR failing on `sub=...:pull_request`).
+- `[x]` Record the demo GIF/asciinema (a PR failing on `sub=...:pull_request`) - **closed
+  2026-11-24, will not run:** it was material for the coordinated burst below, which was closed on
+  2026-11-15; a subcheck-only launch would be a new item, and so would its demo.
 - `[x]` Coordinated burst *with subvectors* - **closed 2026-11-15, will not run:** subvectors was
   archived on 2026-10-11 and 0.7.0 is final, so there is no pair to launch; a subcheck-only launch
   would be a new item. As it stood: **article leg dropped 2026-08-29** (the article
@@ -351,8 +366,13 @@ Open follow-ups from the same pass:
   default-format trust conditions entirely. The drift check gained a third direction
   (MIS-PARSE) because coverage alone could never have caught this — it only asks whether a
   subject parses, not whether it parses *correctly*.
-- `[ ]` Decide `equals`/`in` type handling: coerce, or keep type-strict + documented (currently the
-  latter).
+- `[x]` Decide `equals`/`in` type handling: coerce, or keep type-strict + documented - **decided
+  2026-11-24: kept type-strict, documented**, as it already was. `equals` and `in` compare the
+  claim's JSON value as it is, not its text, and a string never equals a number: written unquoted,
+  `repository_id: {equals: 456789}` fails against the `"456789"` a token carries. That fails
+  closed, and quoting the number fixes it. Documented in the README's Policy section, under
+  "Matching notes" ("quote a number you expect as a string"), and in the changelog since 0.2.0
+  (the Phase 0 item above).
 - `[x]` Close test-coverage holes — **DONE 2026-08-31: 92% -> 100%, every module.** The v0.4.1 pass
   took the `glob` branch, the `equals` FAIL path and the `rc=2` bad-policy paths
   (`tests/test_policy_shape.py`); the follow-up took the rest (`tests/test_cli_inputs.py`):

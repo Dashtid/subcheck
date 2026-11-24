@@ -6,6 +6,11 @@ version: 2
 updates:
   - package-ecosystem: "pip"
     directory: "/"
+    # The CI gate's hash lock is generated together with pre-commit.yml and
+    # moves only with it; a bump here would be overwritten at the next
+    # regeneration. Security updates do not read this list.
+    exclude-paths:
+      - ".github/pre-commit-requirements.txt"
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5

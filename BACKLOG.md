@@ -372,7 +372,9 @@ Open follow-ups from the same pass:
   `repository_id: {equals: 456789}` fails against the `"456789"` a token carries. That fails
   closed, and quoting the number fixes it. Documented in the README's Policy section, under
   "Matching notes" ("quote a number you expect as a string"), and in the changelog since 0.2.0
-  (the Phase 0 item above).
+  (the Phase 0 item above). Fixed after the decision, 2026-11-25 and unreleased: a boolean and a
+  number still satisfied each other's `equals` and `in`, because Python counts `True` as `1`; a
+  boolean now equals only a boolean.
 - `[x]` Close test-coverage holes — **DONE 2026-08-31: 92% -> 100%, every module.** The v0.4.1 pass
   took the `glob` branch, the `equals` FAIL path and the `rc=2` bad-policy paths
   (`tests/test_policy_shape.py`); the follow-up took the rest (`tests/test_cli_inputs.py`):

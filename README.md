@@ -181,8 +181,9 @@ both supply a key, either - YAML would keep the first one's rule and drop the ot
 
 **Matching notes:** `matches` uses `re.search`, so it is *not* anchored — `matches: pull_request`
 matches that substring anywhere in the value. Anchor with `^…$` when you mean the whole claim (the
-examples do). `equals`/`in` compare against the value's real JSON type, so quote a number you expect
-as a string; `matches`/`glob` always operate on the stringified value.
+examples do). `equals`/`in` compare against the value's real JSON type: a string never equals a
+number, and a boolean equals only a boolean (`true` is not `1`), so quote a number you expect as a
+string; `matches`/`glob` always operate on the stringified value.
 
 `glob` is `fnmatch`-based: case-sensitive, `*` spans any characters (including `/` and `:`), `?`
 matches one. That lines up with AWS IAM `StringLike` on the properties that matter, with **one

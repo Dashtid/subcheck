@@ -92,8 +92,8 @@ def test_a_regex_re_cannot_compile_is_rejected_whatever_re_raises(pattern):
 
 
 def test_equals_still_accepts_any_json_scalar():
-    # equals compares with != against the claim's real JSON type, so a number
-    # is a legitimate rule - the shape guards must not break it.
+    # equals compares against the claim's real JSON type, so a number is a
+    # legitimate rule - the shape guards must not break it.
     policy = load_policy({"claims": {"run_attempt": {"equals": 1}}})
     assert validate({"run_attempt": 1}, policy)[0].status == PASS
 

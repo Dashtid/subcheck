@@ -24,11 +24,25 @@ class Result:
     message: str
 
 
+def _same_value(value: object, expected: object) -> bool:
+    # bool is an int subclass in Python, so True == 1 == 1.0 and [True] == [1]. A JSON
+    # boolean equals only a boolean, at any depth; 1 and 1.0 are still one JSON number.
+    if isinstance(value, bool) != isinstance(expected, bool):
+        return False
+    if isinstance(value, list) and isinstance(expected, list):
+        return len(value) == len(expected) and all(map(_same_value, value, expected))
+    if isinstance(value, dict) and isinstance(expected, dict):
+        return value.keys() == expected.keys() and all(
+            _same_value(item, expected[key]) for key, item in value.items()
+        )
+    return value == expected
+
+
 def _matches(rule: ClaimRule, value) -> bool:
     text = str(value)
-    if rule.equals is not None and value != rule.equals:
+    if rule.equals is not None and not _same_value(value, rule.equals):
         return False
-    if rule.one_of is not None and value not in rule.one_of:
+    if rule.one_of is not None and not any(_same_value(value, item) for item in rule.one_of):
         return False
     if rule.matches is not None and re.search(rule.matches, text) is None:
         return False

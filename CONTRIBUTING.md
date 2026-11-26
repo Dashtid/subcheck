@@ -6,20 +6,16 @@ expectation *you* write, and deliberately does **not** simulate a cloud's trust-
 semantics — grading whether a trust condition is well-formed, matching, and safe lives in the
 sibling [subvectors](https://github.com/Dashtid/subvectors) vector suite.
 
+## Archived
+
+subcheck was archived on 2026-11-26: the repository is read-only, so it takes no issues or pull
+requests, and 0.5.3 is the final release. The code is MIT-licensed, so a fork can take it further.
+[`BACKLOG.md`](BACKLOG.md) keeps the open items: two known bugs, both fail-closed, and the feature
+ideas filed as issues #2-#6, closed as not planned.
+
 ## Setup
 
 ```bash
 pip install -e ".[dev]"
 pytest -q && ruff check . && mypy && bandit -r src
 ```
-
-## Maintenance only
-
-subcheck is finished: bug fixes still ship, and new features are not planned. A bug report, or a
-fix with a test, is welcome. The feature ideas filed as issues #2-#6 (the GitLab `sub` format, a
-`forbidden` rule, SARIF output, `--fail-on`, `--claim-map`) are not planned.
-
-## Pull requests
-
-Keep the change focused, add a test, and make sure `pytest`, `ruff check`, `mypy`, and `bandit` pass - CI runs all four.
-Not sure about scope? Open an issue first — open questions are welcome.

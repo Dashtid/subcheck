@@ -16,6 +16,8 @@ anything that would notice it rotting:
 
 import io
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -27,8 +29,12 @@ from subcheck.cli import main
 ROOT = Path(__file__).resolve().parent.parent
 README = ROOT / "README.md"
 
-# `uses: Dashtid/subcheck@v1.2.3`, whatever the whitespace or trailing comment.
-_PIN = re.compile(r"uses:\s*Dashtid/subcheck@v(\d+\.\d+\.\d+)")
+# `uses: Dashtid/subcheck@v1.2.3`, or a full commit SHA with the version as its comment,
+# `uses: Dashtid/subcheck@<40 hex> # v1.2.3`. A release commit cannot name its own SHA, so it
+# carries the tag form, and the SHA replaces it once the tag exists.
+_PIN = re.compile(
+    r"uses:\s*Dashtid/subcheck@(?:v(\d+\.\d+\.\d+)|([0-9a-f]{40})\s+#\s*v(\d+\.\d+\.\d+))"
+)
 
 # The quickstart transcript: a ```text block opening with `$ subcheck <args>`.
 _TRANSCRIPT = re.compile(r"```text\n\$ subcheck ([^\n]*)\n(.*?)```", re.S)
@@ -40,12 +46,34 @@ _POLICY_KEYS = {"issuer", "audience", "claims"}
 
 def test_readme_advertises_the_current_version():
     pins = _PIN.findall(README.read_text(encoding="utf-8"))
-    assert pins, "no `uses: Dashtid/subcheck@vX.Y.Z` found - did the quickstart change shape?"
-    stale = sorted({p for p in pins if p != subcheck.__version__})
+    assert pins, "no `uses: Dashtid/subcheck@...` found - did the quickstart change shape?"
+    stale = sorted({tag or comment for tag, _sha, comment in pins} - {subcheck.__version__})
     assert not stale, (
         f"README pins subcheck@v{', v'.join(stale)} but this tree is "
         f"{subcheck.__version__}; bump the README with the version."
     )
+
+
+def test_readme_sha_pin_is_the_tagged_commit():
+    # A SHA pin is only as good as its SHA: one wrong digit names another commit, or none.
+    text = README.read_text(encoding="utf-8")
+    pins = [(sha, version) for _tag, sha, version in _PIN.findall(text) if sha]
+    if not pins:
+        pytest.skip("the README pins a tag, not a SHA")
+    git = shutil.which("git")
+    if git is None:
+        pytest.skip("git is not installed")
+    for sha, version in pins:
+        ref = f"refs/tags/v{version}^{{commit}}"
+        # The arguments are git itself and a ref built from the regex's digits.
+        r = subprocess.run(  # noqa: S603
+            [git, "-C", str(ROOT), "rev-parse", "--verify", "--quiet", ref],
+            capture_output=True,
+            text=True,
+        )
+        if r.returncode != 0:
+            pytest.skip(f"tag v{version} is not in this clone (CI checks out without tags)")
+        assert r.stdout.strip() == sha, f"README pins {sha} as v{version}; the tag is {r.stdout}"
 
 
 def test_readme_quickstart_transcript_is_real_output():

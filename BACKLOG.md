@@ -19,9 +19,12 @@ subvectors v0.2.0, both 2026-08-24), and the article programme was **closed
 2026-08-29** — article #1 was never drafted and now never will be. Nothing in this repo is gated on anything: ship a slice
 when it is ready. Phase 4 below is the shipping history, not a gate.
 
-**Status 2026-11-26: finished, maintenance only, from 0.5.3** - the owner's call, and the README
-says so. A fix still gets a release; no new features are planned, so the feature items below
-(`--fail-on`, `forbidden`, SARIF, GitLab `sub`, `--claim-map`: issues #2-#6) are not scheduled.
+**Status 2026-11-26: finished and archived.** 0.5.3 is the final release, and the repository went
+read-only the same day - the owner's call, and the README says so. The open items below stay as the
+record: two known bugs, both fail-closed (a deny rule with an escaped space; an `equals` on a deeply
+nested value), and the feature ideas (`--fail-on`, `forbidden`, SARIF, GitLab `sub`, `--claim-map`:
+issues #2-#6, closed as not planned). Unarchiving restores the maintenance state: a fix gets a
+release, and the README's SHA pin moves to the new tag's commit once the tag exists.
 
 Status keys: `[ ]` todo · `[~]` in progress · `[x]` done this cycle.
 
@@ -352,14 +355,15 @@ Open follow-ups from the same pass:
   marks (Devanagari, Thai, Hebrew niqqud, NFD accents) and whitespace other than U+0020.
 - `[ ]` `--fail-on <severity>` threshold gating — today any single required-but-missing medium claim
   fails the whole gate (`report.py` `passed = all(PASS)`); no way to gate on high only.
+  *(issue #5, not planned)*
 - `[x]` `exp`/`iat`/`nbf` time checks — **DONE 2026-08-25 (v0.4.0)**, as advisory NOTES, never
   failures: enforcing lifetime is the cloud provider's job at assume-time, and gating would imply
   an authentication control this tool does not provide. The value is the saved-fixture case (an
   expired `--claims` file that quietly stopped testing anything); future `nbf`, `iat` >5min ahead,
   and `exp` <= `iat` are reported the same way. `now` is injectable so the tests are clock-free.
-- `[ ]` `forbidden` rule (assert a claim is NOT one of a set). *(good first issue)*
-- `[ ]` SARIF output so findings land in the GitHub Security tab. *(good first issue)*
-- `[ ]` GitLab CI `sub` format support. *(good first issue)*
+- `[ ]` `forbidden` rule (assert a claim is NOT one of a set). *(issue #2, not planned)*
+- `[ ]` SARIF output so findings land in the GitHub Security tab. *(issue #3, not planned)*
+- `[ ]` GitLab CI `sub` format support. *(issue #4, not planned)*
 - `[x]` **Decode `job_workflow_ref:` subjects — DONE 2026-08-25 (v0.3.0), and it turned up a
   real bug.** The drift check flagged the bare
   `job_workflow_ref:owner/repo/.github/workflows/x.yml@ref` form as undecoded (2026-08-24).

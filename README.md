@@ -13,8 +13,10 @@ workflow, or trigger assume your role.
 [subvectors](https://github.com/Dashtid/subvectors), the conformance test-vector suite (an "answer
 key") that grades whether those trust conditions are well-formed, matching, and safe.*
 
-> Status: finished, maintenance only, from 0.5.3 (2026-11-26). subcheck does what it was built to
-> do. Bug fixes still ship; new features are not planned.
+> Status: finished. **Archived 2026-11-26:** the repository is read-only and no further work is
+> planned. 0.5.3 is the final release: it stays installable from PyPI, and the Action keeps working
+> at the commit pinned below. Two known bugs stay open, and both fail closed (the gate exits
+> non-zero instead of passing); [`BACKLOG.md`](BACKLOG.md) has them.
 
 ```text
 $ subcheck --claims examples/claims-pull-request.json --policy examples/policy.json
@@ -311,9 +313,9 @@ permissions:
   id-token: write
   contents: read
 steps:
-  - uses: actions/checkout@v7
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
   - name: Verify the OIDC token is scoped as expected
-    uses: Dashtid/subcheck@v0.5.3        # or @main
+    uses: Dashtid/subcheck@3241ea42d332f069c93061ecc4c8f9f778015bd4 # v0.5.3
     with:
       policy: .github/oidc-policy.yaml
       audience: sts.amazonaws.com        # default
@@ -326,8 +328,8 @@ permissions:
   id-token: write
   contents: read
 steps:
-  - uses: actions/checkout@v7
-  - run: pip install subcheck
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+  - run: pip install subcheck==0.5.3
   - name: Verify the OIDC token is scoped as expected
     run: |
       TOKEN=$(curl -sH "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
@@ -345,7 +347,8 @@ mypy               # type check (CI enforces this)
 bandit -r src      # security lint
 ```
 
-Bug reports and fixes are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
+The repository is archived and takes no issues or pull requests. The code is MIT-licensed, so a
+fork can take it further; [CONTRIBUTING.md](CONTRIBUTING.md) has the setup.
 
 ## Related tools
 

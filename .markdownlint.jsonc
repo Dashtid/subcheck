@@ -1,4 +1,4 @@
-// Shared estate markdownlint standard. Strict about things that change how a
+// Shared markdownlint standard. Strict about things that change how a
 // document RENDERS; silent about house style.
 //
 // Two rules are off because their --fix corrupts prose, proven on this corpus
@@ -12,7 +12,7 @@
 {
   "default": true,
 
-  "MD004": { "style": "dash" },      // one bullet character, estate-wide
+  "MD004": { "style": "dash" },      // one bullet character, in every repo
   "MD005": false,                    // fix re-indents nested items
   "MD007": false,                    // fix re-indents nested items
   "MD009": { "br_spaces": 2 },       // two trailing spaces stay a hard break

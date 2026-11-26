@@ -1,5 +1,5 @@
-# Generated from estate/standards/workflow-precommit.yml - edit it THERE, then
-# re-run `python standards/rollout.py --apply`.
+# Generated from the shared standard (standards/workflow-precommit.yml) - edit
+# it THERE, then re-run `python standards/rollout.py --apply`.
 #
 # WHY THIS EXISTS. The git hooks are advisory: --no-verify walks past them and
 # a fresh clone does not have them at all. This job re-runs them over the whole
@@ -70,12 +70,12 @@ jobs:
 
 
       # Same pre-commit the workstations run, installed by hash: a bare == pin
-      # fixes the version, not the bytes or anything under it. The version is set
-      # in estate/standards/pre-commit-requirements.in; the hashes, for it and
-      # every dependency, live in the lock that file's uv command makes, rolled
-      # out with this workflow. --only-binary: pip takes only the locked wheels and
-      # never falls back to building an sdist, whose build dependencies no hash
-      # covers. Quoted, because YAML reads the ": " in ":all: -r" as a key. The
+      # fixes the version, not the bytes or anything under it. The version and
+      # the hashes, for it and every dependency, come from the shared standard's
+      # lock (standards/pre-commit-requirements.txt), rolled out with this
+      # workflow. --only-binary: pip takes only the locked wheels and never falls
+      # back to building an sdist, whose build dependencies no hash covers.
+      # Quoted, because YAML reads the ": " in ":all: -r" as a key. The
       # workstations' uv-tool pre-commit moves to the same version in the same wave.
       - run: 'python -m pip install --require-hashes --only-binary :all: -r .github/pre-commit-requirements.txt'
 

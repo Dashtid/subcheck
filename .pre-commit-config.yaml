@@ -1,4 +1,4 @@
-# Shared estate pre-commit core.
+# Shared pre-commit core, from the shared tooling standard.
 #
 # Every hook below is pinned to an exact revision, and a revision moves only once
 # its release is at least 7 days old (a security fix may move sooner). Pins move
@@ -49,8 +49,8 @@ default_install_hook_types: [pre-commit, commit-msg, pre-push]
 #       pre-commit run --hook-stage commit-msg \
 #         --commit-msg-filename ../some/path/COMMIT_EDITMSG \
 #         check-illegal-windows-names        # exit 1, "Illegal Windows filenames"
-#     Three agent sessions had to reach for SKIP= to commit at all, which this
-#     estate otherwise forbids - a gate that forces its own bypass is worse than
+#     Three agent sessions had to reach for SKIP= to commit at all, which is
+#     otherwise forbidden here - a gate that forces its own bypass is worse than
 #     no gate.
 #
 # So file hooks default to the stages where a file list means something. The two
@@ -87,8 +87,8 @@ repos:
 
   # detect-private-key above reads CONTENT, so a binary key store - .p12, .pfx,
   # .jks - sails straight past it. The filename catches what content inspection
-  # cannot. Public halves (.pub) are deliberately not matched: this estate
-  # commits those on purpose.
+  # cannot. Public halves (.pub) are deliberately not matched: repositories
+  # under this standard commit those on purpose.
   - repo: local
     hooks:
       - id: forbid-key-material
@@ -97,9 +97,9 @@ repos:
         language: fail
         files: '((^|/)id_(rsa|dsa|ecdsa|ed25519)|\.(pem|key|p12|pfx|jks|keystore))$'
 
-  # A leaked credential has already cost this estate a rotation more than once.
-  # This is the hook that stops the next one, and it is the reason the core is
-  # worth having even in a repository that holds only notes.
+  # A leaked credential has already cost these repositories a rotation more than
+  # once. This is the hook that stops the next one, and it is the reason the core
+  # is worth having even in a repository that holds only notes.
   #
   # [i] The top-level exclude does NOT apply here: the hook ignores the
   # filenames pre-commit passes and scans the content itself. That is the right
@@ -187,7 +187,7 @@ repos:
   # ---------------------------------------------------------------------------
   # REPO-SPECIFIC HOOKS BELOW THIS LINE
   # EVERYTHING in this file is generated - the block below the marker comes
-  # from estate/standards/repo/<this repo>.yaml, and a hand edit HERE is
-  # overwritten on the next rollout. Edit it THERE, then re-run
+  # from the shared standard (standards/repo/<this repo>.yaml), and a hand edit
+  # HERE is overwritten on the next rollout. Edit it THERE, then re-run
   #     python standards/rollout.py --apply
   # ---------------------------------------------------------------------------

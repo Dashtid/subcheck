@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
@@ -8,7 +8,8 @@ version = "0.5.2"
 description = "Decode GitHub Actions OIDC token claims and validate them against an expected-claims policy - a CI gate against over-broad cloud trust."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "David Dashti" }]
 keywords = ["oidc", "github-actions", "aws-iam", "cicd-security", "supply-chain-security", "least-privilege"]
 classifiers = [
@@ -18,7 +19,6 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
-  "License :: OSI Approved :: MIT License",
   "Topic :: Security",
   "Intended Audience :: Developers",
   "Typing :: Typed",
@@ -43,6 +43,8 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/Dashtid/subcheck"
+Changelog = "https://github.com/Dashtid/subcheck/blob/main/CHANGELOG.md"
+Issues = "https://github.com/Dashtid/subcheck/issues"
 Related = "https://github.com/Dashtid/subvectors"
 
 [project.scripts]

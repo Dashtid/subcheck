@@ -18,6 +18,16 @@ All notable changes are documented here. Format based on
   it. `tests/test_validator.py`: 30 tests, 12 of which fail against 0.5.2 - the other 18 pin
   verdicts that must not change; 337 -> 367 tests.
 
+### Changed
+
+- **The license is declared as an SPDX expression.** `pyproject.toml` says `license = "MIT"` with
+  `license-files = ["LICENSE"]` (PEP 639) in place of the `{ text = "MIT" }` table and the
+  `License :: OSI Approved :: MIT License` classifier, which core metadata 2.4 deprecates. The
+  build requirement is `hatchling>=1.27`, the first release the packaging guide lists for PEP 639.
+  The license itself is unchanged, and the wheel and the sdist still carry `LICENSE`.
+- The PyPI page links the changelog and the issue tracker: `Changelog` and `Issues` under
+  `[project.urls]`, beside `Homepage` and `Related`.
+
 ## [0.5.2] - 2026-11-15
 
 ### Security

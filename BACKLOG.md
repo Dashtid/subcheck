@@ -86,18 +86,19 @@ new/renamed/transferred repos on **2026-07-15**; name-based policies silently st
   published, trusted-publishing run green, `pypi.org/pypi/subcheck/json` returns 200 —
   **`pip install subcheck` works.** The "featured but not installable" state is over.
 
-For the next release - packaging metadata in `pyproject.toml`, no code change:
+For the next release - packaging metadata in `pyproject.toml`, no code change. **All three DONE
+2026-11-26 (v0.5.3):**
 
-- `[ ]` Declare the license as a PEP 639 SPDX expression. `pyproject.toml` still uses the table
+- `[x]` Declare the license as a PEP 639 SPDX expression. `pyproject.toml` still uses the table
   form, `license = { text = "MIT" }`, plus the `License :: OSI Approved :: MIT License`
   classifier; PEP 639 deprecates the table, and core metadata 2.4 - hatchling's default since
   1.27 - deprecates `License ::` classifiers. Replace the table with `license = "MIT"` and
   `license-files = ["LICENSE"]`, drop the classifier, and change `[build-system]`'s bare
   `hatchling` to `hatchling>=1.27`, the first release the packaging guide lists for PEP 639.
-- `[ ]` Add a `Changelog` URL under `[project.urls]`:
+- `[x]` Add a `Changelog` URL under `[project.urls]`:
   `https://github.com/Dashtid/subcheck/blob/main/CHANGELOG.md`. The table has only `Homepage`
   (this repository) and `Related` (subvectors) today.
-- `[ ]` Add an `Issues` URL under `[project.urls]`: `https://github.com/Dashtid/subcheck/issues`.
+- `[x]` Add an `Issues` URL under `[project.urls]`: `https://github.com/Dashtid/subcheck/issues`.
 
 ## Phase 4 — launch (the gate has partly fired on its own)
 

@@ -345,7 +345,7 @@ mypy               # type check (CI enforces this)
 bandit -r src      # security lint
 ```
 
-Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md); good first issues are labelled.
+Bug reports and fixes are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Related tools
 

@@ -13,14 +13,11 @@ pip install -e ".[dev]"
 pytest -q && ruff check . && mypy && bandit -r src
 ```
 
-## Good first issues
+## Maintenance only
 
-Small, self-contained additions (labelled `good first issue`):
-
-- Support the GitLab CI OIDC token `sub` format alongside GitHub's.
-- Add a `forbidden` rule (assert a claim is NOT one of a set of values).
-- Add `--claim-map` to normalise provider-specific claim names before validation.
-- Emit [SARIF](https://sarifweb.azurewebsites.net/) so findings show up in the GitHub Security tab.
+subcheck is finished: bug fixes still ship, and new features are not planned. A bug report, or a
+fix with a test, is welcome. The feature ideas filed as issues #2-#6 (the GitLab `sub` format, a
+`forbidden` rule, SARIF output, `--fail-on`, `--claim-map`) are not planned.
 
 ## Pull requests
 

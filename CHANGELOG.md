@@ -6,6 +6,8 @@ All notable changes are documented here. Format based on
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-26
+
 ### Fixed
 
 - **A JSON boolean and a number satisfied each other's `equals` and `in`.** Python counts `True` as

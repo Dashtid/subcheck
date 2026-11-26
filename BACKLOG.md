@@ -345,7 +345,7 @@ Open follow-ups from the same pass:
   review found that once `\ ` joins a run, a "not blank" pattern on a trust anchor -
   `repository: {matches: '[^\ ]'}`, `^(?!\ *$)`, `.*[^\ ]`, `^(?!\ )`, `\S(?<!\ )` - is tried on
   a value of only spaces, which it rules out, so it loads and passes a token from any repository
-  (exit 0). That is a fail-open in exchange for a fail-closed, so 0.5.2 stays the release. The
+  (exit 0). That is a fail-open in exchange for a fail-closed, so neither 0.5.2 nor 0.5.3 has it. The
   hand-written tokenizer cannot tell an escape inside a character class from one in a literal;
   the fix wants runs taken from the parsed pattern (literal sequences only, never class members)
   before it ships. The same review listed names that still split a run either way: combining
@@ -377,9 +377,15 @@ Open follow-ups from the same pass:
   `repository_id: {equals: 456789}` fails against the `"456789"` a token carries. That fails
   closed, and quoting the number fixes it. Documented in the README's Policy section, under
   "Matching notes" ("quote a number you expect as a string"), and in the changelog since 0.2.0
-  (the Phase 0 item above). Fixed after the decision, 2026-11-25 and unreleased: a boolean and a
-  number still satisfied each other's `equals` and `in`, because Python counts `True` as `1`; a
-  boolean now equals only a boolean.
+  (the Phase 0 item above). Fixed after the decision, 2026-11-25, and released in 0.5.3: a boolean
+  and a number still satisfied each other's `equals` and `in`, because Python counts `True` as `1`;
+  a boolean now equals only a boolean.
+- `[ ]` **An `equals` on a deeply nested value can end in a `RecursionError` (fail-closed).** The
+  0.5.3 type-strict comparison recurses while the rule value and the claim value are both arrays or
+  objects, so a rule and a claim nested about 500 objects deep exit 1 with a traceback instead of a
+  verdict; 0.5.2 passed that case, and arrays nested about 1000 deep already crashed the same way
+  in 0.5.2. The depth is bounded by the policy, so a token alone cannot reach it. Found by the
+  0.5.3 pre-release review, 2026-11-26.
 - `[x]` Close test-coverage holes — **DONE 2026-08-31: 92% -> 100%, every module.** The v0.4.1 pass
   took the `glob` branch, the `equals` FAIL path and the `rc=2` bad-policy paths
   (`tests/test_policy_shape.py`); the follow-up took the rest (`tests/test_cli_inputs.py`):

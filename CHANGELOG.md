@@ -15,10 +15,10 @@ All notable changes are documented here. Format based on
   `false`, and `in: [1]` passed `true` - though `equals` and `in` are documented to compare the
   claim's real JSON type, and a string already never equalled a number. A boolean now equals only a
   boolean, inside an array or an object too; `1` and `1.0` are still one number, and equal. A claim
-  holding a string is compared exactly as before, so only one holding a boolean or a number can
-  change verdict, and only from pass to fail. Every published release from 0.2.0 through 0.5.2 has
-  it. `tests/test_validator.py`: 30 tests, 12 of which fail against 0.5.2 - the other 18 pin
-  verdicts that must not change; 337 -> 367 tests.
+  holding a string is compared exactly as before, so only a claim holding a boolean or a number - on
+  its own or inside an array or an object - can change verdict, and only from pass to fail. Every
+  published release from 0.2.0 through 0.5.2 has it. `tests/test_validator.py` gains 30 tests, 12
+  of which fail against 0.5.2 - the other 18 pin verdicts that must not change; 337 -> 367 tests.
 
 ### Changed
 

@@ -13,6 +13,9 @@ workflow, or trigger assume your role.
 [subvectors](https://github.com/Dashtid/subvectors), the conformance test-vector suite (an "answer
 key") that grades whether those trust conditions are well-formed, matching, and safe.*
 
+> Status: finished, maintenance only, from 0.5.3 (2026-11-26). subcheck does what it was built to
+> do. Bug fixes still ship; new features are not planned.
+
 ```text
 $ subcheck --claims examples/claims-pull-request.json --policy examples/policy.json
 OIDC claim inspection: FAIL  (5 pass, 1 fail, 1 missing)

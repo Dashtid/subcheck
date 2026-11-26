@@ -19,6 +19,10 @@ subvectors v0.2.0, both 2026-08-24), and the article programme was **closed
 2026-08-29** — article #1 was never drafted and now never will be. Nothing in this repo is gated on anything: ship a slice
 when it is ready. Phase 4 below is the shipping history, not a gate.
 
+**Status 2026-11-26: finished, maintenance only, from 0.5.3** - the owner's call, and the README
+says so. A fix still gets a release; no new features are planned, so the feature items below
+(`--fail-on`, `forbidden`, SARIF, GitLab `sub`, `--claim-map`: issues #2-#6) are not scheduled.
+
 Status keys: `[ ]` todo · `[~]` in progress · `[x]` done this cycle.
 
 ## Phase 0 — correctness & honesty (done this cycle)
